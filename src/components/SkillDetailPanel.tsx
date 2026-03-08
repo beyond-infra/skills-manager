@@ -1,15 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, FileText, Folder } from "lucide-react";
+import { X, FileText, Folder, CheckCircle2, Circle, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useTranslation } from "react-i18next";
 import { cn } from "../utils";
 import { getSkillDocument, type ManagedSkill, type SkillDocument } from "../lib/tauri";
 
+export interface SyncMeta {
+  syncedToolKeys: string[];
+  syncedToolLabels: string[];
+  pendingToolKeys: string[];
+  pendingToolLabels: string[];
+}
+
 interface Props {
   skill: ManagedSkill | null;
   onClose: () => void;
+  syncMeta?: SyncMeta | null;
+  syncing?: boolean;
+  onSync?: (mode: "sync" | "unsync") => void;
 }
 
 function stripFrontmatter(content: string) {
@@ -21,7 +31,7 @@ function stripFrontmatter(content: string) {
   return content.slice(end + 5).trimStart();
 }
 
-export function SkillDetailPanel({ skill, onClose }: Props) {
+export function SkillDetailPanel({ skill, onClose, syncMeta, syncing, onSync }: Props) {
   const { t } = useTranslation();
   const [doc, setDoc] = useState<SkillDocument | null>(null);
   const [loading, setLoading] = useState(false);
@@ -74,6 +84,55 @@ export function SkillDetailPanel({ skill, onClose }: Props) {
             <span className="font-mono truncate">{skill.central_path}</span>
           </div>
         </div>
+
+        {syncMeta && onSync && (
+          <div className="flex items-center justify-between border-b border-border-subtle px-5 py-2 text-[11px]">
+            <div className="flex items-center gap-2 text-muted">
+              {syncMeta.syncedToolKeys.length > 0 ? (
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+              ) : (
+                <Circle className="w-3 h-3 text-faint" />
+              )}
+              <span>
+                {t("mySkills.syncSummary", {
+                  synced: syncMeta.syncedToolKeys.length,
+                  total: syncMeta.syncedToolKeys.length + syncMeta.pendingToolKeys.length,
+                })}
+              </span>
+              {syncMeta.syncedToolLabels.length > 0 && (
+                <span className="text-faint">({syncMeta.syncedToolLabels.join(", ")})</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              {syncMeta.pendingToolKeys.length > 0 && (
+                <button
+                  onClick={() => onSync("sync")}
+                  disabled={syncing}
+                  className={cn(
+                    "rounded px-2 py-0.5 text-[11px] font-medium transition-colors outline-none",
+                    "text-muted hover:bg-surface-hover hover:text-secondary",
+                    syncing && "opacity-50"
+                  )}
+                >
+                  {syncing ? <Loader2 className="h-3 w-3 animate-spin" /> : t("mySkills.syncMissing", { count: syncMeta.pendingToolKeys.length })}
+                </button>
+              )}
+              {syncMeta.syncedToolKeys.length > 0 && (
+                <button
+                  onClick={() => onSync("unsync")}
+                  disabled={syncing}
+                  className={cn(
+                    "rounded px-2 py-0.5 text-[11px] font-medium transition-colors outline-none",
+                    "text-faint hover:bg-red-500/10 hover:text-red-400",
+                    syncing && "opacity-50"
+                  )}
+                >
+                  {t("mySkills.unsyncSelected", { count: syncMeta.syncedToolKeys.length })}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 scrollbar-hide">
           {loading ? (

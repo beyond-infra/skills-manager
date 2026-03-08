@@ -364,7 +364,6 @@ export function MySkills() {
               ? skill.scenario_ids.includes(activeScenario.id)
               : false;
             const badge = statusBadge(skill, enabledInScenario, isSynced);
-            const isSyncBusy = syncingSkillId === skill.id;
 
             if (viewMode === "grid") {
               return (
@@ -460,23 +459,6 @@ export function MySkills() {
                       >
                         {enabledInScenario ? t("mySkills.enabledButton") : t("mySkills.enable")}
                       </button>
-                      <button
-                        onClick={() => void handleSyncAction(skill, isSynced ? "unsync" : "sync")}
-                        disabled={isSyncBusy}
-                        className={cn(
-                          "rounded px-2 py-1 text-[12px] font-medium transition-colors outline-none",
-                          isSynced
-                            ? "text-emerald-400 hover:bg-emerald-500/10"
-                            : "text-muted hover:bg-surface-hover hover:text-secondary",
-                          isSyncBusy && "opacity-50"
-                        )}
-                      >
-                        {isSyncBusy
-                          ? t("common.loading")
-                          : isSynced
-                            ? t("mySkills.synced")
-                            : t("mySkills.sync")}
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -535,23 +517,6 @@ export function MySkills() {
                     {enabledInScenario ? t("mySkills.enabledButton") : t("mySkills.enable")}
                   </button>
                   <button
-                    onClick={() => void handleSyncAction(skill, isSynced ? "unsync" : "sync")}
-                    disabled={isSyncBusy}
-                    className={cn(
-                      "rounded px-2 py-1 text-[12px] font-medium transition-colors outline-none",
-                      isSynced
-                        ? "text-emerald-400 hover:bg-emerald-500/10"
-                        : "text-muted hover:bg-surface-hover hover:text-secondary",
-                      isSyncBusy && "opacity-50"
-                    )}
-                  >
-                    {isSyncBusy
-                      ? t("common.loading")
-                      : isSynced
-                        ? t("mySkills.synced")
-                        : t("mySkills.sync")}
-                  </button>
-                  <button
                     onClick={() => handleCheckUpdate(skill)}
                     disabled={checkingSkillId === skill.id}
                     className="rounded p-0.5 text-muted transition-colors hover:bg-surface-hover hover:text-secondary disabled:opacity-50"
@@ -583,7 +548,13 @@ export function MySkills() {
         </div>
       )}
 
-      <SkillDetailPanel skill={selectedSkill} onClose={closeSkillDetail} />
+      <SkillDetailPanel
+        skill={selectedSkill}
+        onClose={closeSkillDetail}
+        syncMeta={selectedSkill ? getSyncMeta(selectedSkill) : null}
+        syncing={selectedSkill ? syncingSkillId === selectedSkill.id : false}
+        onSync={(mode) => selectedSkill && handleSyncAction(selectedSkill, mode)}
+      />
 
       <ConfirmDialog
         open={deleteTarget !== null}

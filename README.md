@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/icon.png" width="80" />
+  <img src="assets/icon.png" width="80" />
 </p>
 
 <h1 align="center">Skills Manager</h1>
@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/demo.gif" width="800" alt="Skills Manager Demo" />
+  <img src="assets/demo.gif" width="800" alt="Skills Manager Demo" />
 </p>
 
 ## Features
