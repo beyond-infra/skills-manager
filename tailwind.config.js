@@ -36,6 +36,11 @@ export default {
       },
       fontFamily: {
         sans: [
+          '"SF Pro Text"',
+          '"PingFang SC"',
+          '"Hiragino Sans GB"',
+          '"Noto Sans SC"',
+          '"Microsoft YaHei"',
           '-apple-system',
           'BlinkMacSystemFont',
           '"Segoe UI"',

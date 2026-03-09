@@ -299,7 +299,7 @@ export function InstallSkills() {
                 key={tab.id}
                 onClick={() => switchTab(tab.id)}
                 className={cn(
-                  "mr-4 flex items-center gap-1.5 border-b-2 px-1 pb-2.5 text-[12px] font-medium transition-colors outline-none",
+                  "mr-4 flex items-center gap-1.5 border-b-2 px-1 pb-2.5 text-[13px] font-medium transition-colors outline-none",
                   isActive
                     ? "border-accent text-accent"
                     : "border-transparent text-muted hover:text-tertiary"
@@ -319,7 +319,7 @@ export function InstallSkills() {
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-2">
                 <div className="min-w-0">
-                  <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                  <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[13px] text-muted">
                     <span className="inline-flex items-center gap-1.5 rounded-[5px] border border-border-subtle bg-background px-2 py-1 font-medium text-tertiary">
                       <Box className="h-3 w-3" />
                       {t("install.browseMarket")}
@@ -350,7 +350,7 @@ export function InstallSkills() {
                             key={tab.id}
                             onClick={() => setMarketTab(tab.id)}
                             className={cn(
-                              "app-segmented-button flex items-center gap-1.5 text-[11px]",
+                              "app-segmented-button flex items-center gap-1.5",
                               isActive && "app-segmented-button-active"
                             )}
                           >
@@ -380,7 +380,7 @@ export function InstallSkills() {
 
               <div className="border-t border-border-subtle pt-2">
                 <div className="flex items-center gap-3">
-                  <span className="shrink-0 text-[11px] font-medium text-tertiary">
+                  <span className="shrink-0 text-[13px] font-medium text-tertiary">
                     {t("install.filters.source")}
                   </span>
                   <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
@@ -389,7 +389,7 @@ export function InstallSkills() {
                       type="button"
                       onClick={() => setMarketSourceFilter("all")}
                       className={cn(
-                        "rounded-full border px-2.5 py-1 text-[11px] font-medium whitespace-nowrap transition-colors",
+                        "rounded-full border px-2.5 py-1 text-[13px] font-medium whitespace-nowrap transition-colors",
                         marketSourceFilter === "all"
                           ? "border-accent-border bg-accent-bg text-accent-light"
                           : "border-border-subtle bg-background text-muted hover:text-secondary"
@@ -403,7 +403,7 @@ export function InstallSkills() {
                         type="button"
                         onClick={() => setMarketSourceFilter(source)}
                         className={cn(
-                          "rounded-full border px-2.5 py-1 text-[11px] font-medium whitespace-nowrap transition-colors",
+                          "rounded-full border px-2.5 py-1 text-[13px] font-medium whitespace-nowrap transition-colors",
                           marketSourceFilter === source
                             ? "border-accent-border bg-accent-bg text-accent-light"
                             : "border-border-subtle bg-background text-muted hover:text-secondary"
@@ -448,7 +448,7 @@ export function InstallSkills() {
                   <h3 className="mt-4 text-[14px] font-semibold text-secondary">
                     {t("install.noResults.title")}
                   </h3>
-                  <p className="mt-1 max-w-md text-[12px] text-muted">
+                  <p className="mt-1 max-w-md text-[13px] text-muted">
                     {t("install.noResults.description")}
                   </p>
                 </div>
@@ -470,7 +470,7 @@ export function InstallSkills() {
                               {displayName}
                             </h3>
                             {showSkillId ? (
-                              <p className="truncate text-[10px] leading-4 text-faint">{skill.skill_id}</p>
+                              <p className="truncate text-[13px] leading-4 text-muted">{skill.skill_id}</p>
                             ) : null}
                           </div>
 
@@ -498,10 +498,10 @@ export function InstallSkills() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-1">
-                          <span className="rounded-[5px] bg-accent-bg px-1.5 py-0.5 text-[10px] leading-4 font-medium text-accent-light">
+                          <span className="rounded-[5px] bg-accent-bg px-1.5 py-0.5 text-[13px] leading-4 font-medium text-accent-light">
                             @{skill.source}
                           </span>
-                          <span className="inline-flex items-center gap-1 rounded-[5px] border border-border-subtle bg-background px-1.5 py-0.5 text-[10px] leading-4 text-muted">
+                          <span className="inline-flex items-center gap-1 rounded-[5px] border border-border-subtle bg-background px-1.5 py-0.5 text-[13px] leading-4 text-muted">
                             <DownloadCloud className="h-3 w-3" />
                             {skill.installs > 1000
                               ? `${(skill.installs / 1000).toFixed(0)}k`
@@ -518,7 +518,7 @@ export function InstallSkills() {
                       <button
                         onClick={() => changeMarketPage(Math.max(1, currentMarketPage - 1))}
                         disabled={currentMarketPage === 1}
-                        className="inline-flex items-center gap-1 rounded-[6px] border border-border-subtle bg-surface px-3 py-1.5 text-[11px] font-medium text-secondary transition-colors hover:bg-surface-hover disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-[6px] border border-border-subtle bg-surface px-3 py-1.5 text-[13px] font-medium text-secondary transition-colors hover:bg-surface-hover disabled:opacity-50"
                       >
                         <ChevronLeft className="h-3.5 w-3.5" />
                         {t("install.pagination.previous")}
@@ -530,11 +530,11 @@ export function InstallSkills() {
 
                         return (
                           <div key={page} className="flex items-center gap-1.5">
-                            {showGap ? <span className="px-1 text-[11px] text-faint">...</span> : null}
+                            {showGap ? <span className="px-1 text-[13px] text-faint">...</span> : null}
                             <button
                               onClick={() => changeMarketPage(page)}
                               className={cn(
-                                "min-w-8 rounded-[6px] border px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
+                                "min-w-8 rounded-[6px] border px-2.5 py-1.5 text-[13px] font-semibold transition-colors",
                                 page === currentMarketPage
                                   ? "border-accent-border bg-accent-dark text-white"
                                   : "border-border-subtle bg-surface text-secondary hover:bg-surface-hover"
@@ -549,7 +549,7 @@ export function InstallSkills() {
                       <button
                         onClick={() => changeMarketPage(Math.min(totalMarketPages, currentMarketPage + 1))}
                         disabled={currentMarketPage === totalMarketPages}
-                        className="inline-flex items-center gap-1 rounded-[6px] border border-border-subtle bg-surface px-3 py-1.5 text-[11px] font-medium text-secondary transition-colors hover:bg-surface-hover disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-[6px] border border-border-subtle bg-surface px-3 py-1.5 text-[13px] font-medium text-secondary transition-colors hover:bg-surface-hover disabled:opacity-50"
                       >
                         {t("install.pagination.next")}
                         <ChevronRight className="h-3.5 w-3.5" />
@@ -563,7 +563,7 @@ export function InstallSkills() {
                         type="button"
                         onClick={() => setMarketSearchLimit((value) => value + MARKET_SEARCH_STEP)}
                         disabled={!canLoadMoreSearch || marketLoading}
-                        className="inline-flex items-center gap-2 rounded-[6px] border border-border-subtle bg-surface px-3.5 py-2 text-[11px] font-medium text-secondary transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-[6px] border border-border-subtle bg-surface px-3.5 py-2 text-[13px] font-medium text-secondary transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {marketLoading ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -589,7 +589,7 @@ export function InstallSkills() {
             <div className="border-b border-border-subtle px-4 py-3.5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="max-w-xl">
-                  <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                  <div className="mb-2 flex flex-wrap items-center gap-2 text-[13px] text-muted">
                     <span className="inline-flex items-center gap-1.5 rounded-[5px] border border-accent-border bg-accent-bg px-2 py-1 font-medium text-accent-light">
                       <FolderUp className="h-3.5 w-3.5" />
                       {t("install.local.title")}
@@ -599,7 +599,7 @@ export function InstallSkills() {
                   <h2 className="text-[14px] font-semibold text-secondary">
                     {t("install.local.title")}
                   </h2>
-                  <p className="mt-1 text-[12px] leading-5 text-muted">
+                  <p className="mt-1 text-[13px] leading-5 text-muted">
                     {t("install.local.description")}
                   </p>
                 </div>
@@ -642,7 +642,7 @@ export function InstallSkills() {
             <div className="flex items-center justify-between gap-4 border-b border-border-subtle px-4 py-3.5">
               <div>
                 <h2 className="text-[13px] font-semibold text-secondary">{t("install.scan.title")}</h2>
-                <p className="mt-0.5 text-[11px] text-muted">
+                <p className="mt-0.5 text-[13px] text-muted">
                   {scanResult
                     ? t("install.scan.summary", {
                         tools: scanResult.tools_scanned,
@@ -656,7 +656,7 @@ export function InstallSkills() {
                 <button
                   onClick={runScan}
                   disabled={scanLoading}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-hover px-3 py-2 text-[11px] font-medium text-secondary transition-colors hover:bg-surface-active disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-hover px-3 py-2 text-[13px] font-medium text-secondary transition-colors hover:bg-surface-active disabled:opacity-50"
                 >
                   <RefreshCw className={cn("h-3.5 w-3.5", scanLoading && "animate-spin")} />
                   {t("install.scan.rescan")}
@@ -664,7 +664,7 @@ export function InstallSkills() {
                 <button
                   onClick={handleImportAllDiscovered}
                   disabled={scanLoading || importingAll || pendingGroups.length === 0}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-accent-border bg-accent-dark px-3 py-2 text-[11px] font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-accent-border bg-accent-dark px-3 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
                 >
                   {importingAll ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -680,7 +680,7 @@ export function InstallSkills() {
               {scanLoading ? (
                 <div className="flex items-center justify-center gap-2.5 py-12 text-muted">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-[12px]">{t("install.scan.scanning")}</span>
+                  <span className="text-[13px]">{t("install.scan.scanning")}</span>
                 </div>
               ) : scanResult && scanGroups.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -690,7 +690,7 @@ export function InstallSkills() {
                   <h3 className="mb-1 text-[13px] font-semibold text-tertiary">
                     {t("install.scan.noResults")}
                   </h3>
-                  <p className="text-[11px] text-muted">{t("install.scan.noResultsHint")}</p>
+                  <p className="text-[13px] text-muted">{t("install.scan.noResultsHint")}</p>
                 </div>
               ) : (
                 <>
@@ -709,22 +709,22 @@ export function InstallSkills() {
                                 {group.name}
                               </h3>
                               {group.imported ? (
-                                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[13px] font-semibold text-emerald-400">
                                   <Check className="h-3 w-3" />
                                   {t("install.scan.imported")}
                                 </span>
                               ) : null}
-                              <span className="shrink-0 rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[10px] text-muted">
+                              <span className="shrink-0 rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[13px] text-muted">
                                 {t("install.scan.locations", { count: group.locations.length })}
                               </span>
                               </div>
 
                               {primaryLocation ? (
                                 <div className="flex min-w-0 items-center gap-2">
-                                  <span className="inline-flex shrink-0 rounded-[4px] border border-border-subtle bg-surface px-1.5 py-px text-[10px] font-medium text-tertiary">
+                                  <span className="inline-flex shrink-0 rounded-[4px] border border-border-subtle bg-surface px-1.5 py-px text-[13px] font-medium text-tertiary">
                                     {primaryLocation.tool}
                                   </span>
-                                  <code className="block min-w-0 truncate text-[11px] text-tertiary">
+                                  <code className="block min-w-0 truncate text-[13px] text-tertiary">
                                     {primaryLocation.found_path}
                                   </code>
                                 </div>
@@ -736,7 +736,7 @@ export function InstallSkills() {
                                 <button
                                   onClick={() => primaryPath && handleImportDiscovered(primaryPath, group.name)}
                                   disabled={!primaryPath || isImporting}
-                                  className="inline-flex items-center justify-center gap-1.5 rounded-[6px] border border-accent-border bg-accent-dark px-2.5 py-1.5 text-[10px] font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
+                                  className="inline-flex items-center justify-center gap-1.5 rounded-[6px] border border-accent-border bg-accent-dark px-2.5 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-accent disabled:opacity-50"
                                 >
                                   {isImporting ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -754,10 +754,10 @@ export function InstallSkills() {
                               <div className="space-y-1">
                                 {otherLocations.map((location) => (
                                   <div key={location.id} className="flex min-w-0 items-center gap-2">
-                                    <span className="inline-flex shrink-0 rounded-[4px] border border-border-subtle bg-surface px-1.5 py-px text-[10px] font-medium text-tertiary">
+                                    <span className="inline-flex shrink-0 rounded-[4px] border border-border-subtle bg-surface px-1.5 py-px text-[13px] font-medium text-tertiary">
                                       {location.tool}
                                     </span>
-                                    <code className="block min-w-0 truncate text-[11px] text-muted">
+                                    <code className="block min-w-0 truncate text-[13px] text-muted">
                                       {location.found_path}
                                     </code>
                                   </div>
@@ -782,12 +782,12 @@ export function InstallSkills() {
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface-hover">
               <Github className="h-5 w-5 text-tertiary" />
             </div>
-            <h2 className="mb-1 text-[13px] font-semibold text-primary">{t("install.gitTitle")}</h2>
-            <p className="mb-4 text-[12px] text-muted">{t("install.gitDesc")}</p>
+            <h2 className="mb-1 text-[14px] font-semibold text-primary">{t("install.gitTitle")}</h2>
+            <p className="mb-4 text-[13px] text-muted">{t("install.gitDesc")}</p>
 
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-tertiary">
+                <label className="mb-1 block text-[13px] font-medium text-tertiary">
                   {t("install.repoUrl")}
                 </label>
                 <input
@@ -799,9 +799,9 @@ export function InstallSkills() {
                 />
               </div>
               <div>
-                <label className="mb-1 flex items-center gap-2 text-[11px] font-medium text-tertiary">
+                <label className="mb-1 flex items-center gap-2 text-[13px] font-medium text-tertiary">
                   {t("install.customName")}
-                  <span className="text-[10px] font-normal text-faint">
+                  <span className="text-[13px] font-normal text-muted">
                     {t("install.customNameOptional")}
                   </span>
                 </label>
