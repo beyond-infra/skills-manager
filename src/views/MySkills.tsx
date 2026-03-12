@@ -300,8 +300,8 @@ export function MySkills() {
     }
   };
 
-  const handleAddTag = async (skill: ManagedSkill) => {
-    const trimmed = tagInput.trim();
+  const handleAddTag = async (skill: ManagedSkill, inputValue?: string) => {
+    const trimmed = (inputValue ?? tagInput).trim();
     if (!trimmed || skill.tags.includes(trimmed)) {
       setTagInput("");
       return;
@@ -309,6 +309,7 @@ export function MySkills() {
     try {
       await api.setSkillTags(skill.id, [...skill.tags, trimmed]);
       toast.success(t("mySkills.tags.tagAdded"));
+      setTagEditSkillId(null);
       setTagInput("");
       await refreshManagedSkills();
     } catch (e: any) {
@@ -324,6 +325,15 @@ export function MySkills() {
     } catch (e: any) {
       toast.error(e.toString());
     }
+  };
+
+  const getTagOptions = (skill: ManagedSkill, keyword: string) => {
+    const needle = keyword.trim().toLowerCase();
+    return allTags.filter((tag) => {
+      if (skill.tags.includes(tag)) return false;
+      if (!needle) return true;
+      return tag.toLowerCase().includes(needle);
+    });
   };
 
   const handleGitStartBackup = async () => {
@@ -764,20 +774,41 @@ export function MySkills() {
                         </span>
                       ))}
                       {tagEditSkillId === skill.id ? (
-                        <input
-                          ref={tagInputRef}
-                          type="text"
-                          value={tagInput}
-                          onChange={(e) => setTagInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") { handleAddTag(skill); }
-                            if (e.key === "Escape") { setTagEditSkillId(null); setTagInput(""); }
-                          }}
-                          onBlur={() => { if (tagInput.trim()) handleAddTag(skill); else { setTagEditSkillId(null); setTagInput(""); } }}
-                          placeholder={t("mySkills.tags.addTag")}
-                          className="h-5 w-16 rounded-full border border-border-subtle bg-transparent px-1.5 text-[11px] text-secondary outline-none focus:border-accent"
-                          autoFocus
-                        />
+                        <div className="relative">
+                          <input
+                            ref={tagInputRef}
+                            type="text"
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") { handleAddTag(skill); }
+                              if (e.key === "Escape") { setTagEditSkillId(null); setTagInput(""); }
+                            }}
+                            onBlur={() => {
+                              if (tagInput.trim()) handleAddTag(skill);
+                              else { setTagEditSkillId(null); setTagInput(""); }
+                            }}
+                            placeholder={t("mySkills.tags.addTag")}
+                            className="h-5 w-28 rounded-full border border-border-subtle bg-transparent px-1.5 text-[11px] text-secondary outline-none focus:border-accent"
+                            autoFocus
+                          />
+                          {getTagOptions(skill, tagInput).length > 0 && (
+                            <div className="absolute left-0 top-6 z-10 min-w-[112px] max-w-[180px] rounded-md border border-border-subtle bg-surface p-1 shadow-lg">
+                              {getTagOptions(skill, tagInput).slice(0, 6).map((tagOption) => (
+                                <button
+                                  key={tagOption}
+                                  type="button"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onClick={() => handleAddTag(skill, tagOption)}
+                                  className="w-full truncate rounded px-1.5 py-1 text-left text-[11px] text-secondary hover:bg-surface-hover"
+                                  title={tagOption}
+                                >
+                                  {tagOption}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <button
                           onClick={(e) => { e.stopPropagation(); setTagEditSkillId(skill.id); setTagInput(""); }}

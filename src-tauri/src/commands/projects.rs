@@ -56,9 +56,24 @@ fn ensure_safe_skill_dir_name(skill_dir_name: &str) -> Result<(), String> {
 }
 
 fn ensure_dir_within_root(path: &Path, root: &Path) -> Result<(), String> {
-    let canonical_path = std::fs::canonicalize(path).map_err(|e| e.to_string())?;
-    let canonical_root = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
-    if !canonical_path.starts_with(&canonical_root) {
+    // Use the logical path (without resolving symlinks) so that symlinked
+    // skills exported from the central library still pass the check.
+    // Path-traversal safety is already guaranteed by ensure_safe_skill_dir_name.
+    let abs_path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .map_err(|e| e.to_string())?
+            .join(path)
+    };
+    let abs_root = if root.is_absolute() {
+        root.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .map_err(|e| e.to_string())?
+            .join(root)
+    };
+    if !abs_path.starts_with(&abs_root) {
         return Err("Invalid skill directory path".to_string());
     }
     Ok(())

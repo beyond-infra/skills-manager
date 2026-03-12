@@ -15,12 +15,11 @@ import {
   Trash2,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { useApp } from "../context/AppContext";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { SkillMarkdown } from "../components/SkillMarkdown";
 import { cn } from "../utils";
 import * as api from "../lib/tauri";
 import type { ProjectSkill, ManagedSkill } from "../lib/tauri";
@@ -471,15 +470,6 @@ export function ProjectDetail() {
   );
 }
 
-function stripFrontmatter(content: string): string {
-  const trimmed = content.trim();
-  if (!trimmed.startsWith("---")) return content;
-  const rest = trimmed.slice(3);
-  const end = rest.indexOf("---");
-  if (end === -1) return content;
-  return rest.slice(end + 3).trim();
-}
-
 function ProjectSkillDetailPanel({
   skill,
   docContent,
@@ -492,7 +482,6 @@ function ProjectSkillDetailPanel({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const markdown = docContent ? stripFrontmatter(docContent) : "";
 
   return createPortal(
     <div className="fixed inset-y-0 right-0 left-[220px] z-50 flex">
@@ -530,11 +519,7 @@ function ProjectSkillDetailPanel({
           {docLoading ? (
             <div className="text-[13px] text-muted text-center mt-12">{t("common.loading")}</div>
           ) : docContent ? (
-            <article className="mx-auto w-full max-w-[1240px] text-[13px] leading-6 text-secondary">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {markdown}
-              </ReactMarkdown>
-            </article>
+            <SkillMarkdown content={docContent} />
           ) : (
             <div className="text-[13px] text-muted text-center mt-12">{t("common.documentMissing")}</div>
           )}
