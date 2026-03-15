@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-03-15
+
+### Fixed
+- Add TAURI_SIGNING_PRIVATE_KEY_PASSWORD to release workflow
+- Enable `createUpdaterArtifacts` in tauri.conf.json
+- Add post-build job to verify updater assets (latest.json and .sig files)
 ## [1.4.0] - 2026-03-14
 
 ### Added
