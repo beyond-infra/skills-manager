@@ -10,15 +10,27 @@
 
 <p align="center">
   <a href="./README.zh-CN.md">中文说明</a>
+  &nbsp;·&nbsp;
+  <a href="https://x.com/JayTL00">@JayTL00 on X</a>
+  &nbsp;·&nbsp;
+  <a href="https://buymeacoffee.com/jaytl">Buy me a coffee</a>
 </p>
 
 <p align="center">
   <img src="assets/demo.gif" width="800" alt="Skills Manager Demo" />
 </p>
 
-| My Skills | Project Skills |
-|:---------:|:--------------:|
-| <img src="assets/CleanShot_20260312_234539@2x.png" width="400" alt="My Skills" /> | <img src="assets/CleanShot_20260312_234613@2x.png" width="400" alt="Project Skills" /> |
+<p align="center"><strong>My Skills</strong></p>
+<p align="center"><img src="assets/CleanShot_20260316_231111@2x.png" width="800" alt="My Skills" /></p>
+
+<p align="center"><strong>Install Skills — Marketplace</strong></p>
+<p align="center"><img src="assets/CleanShot_20260316_231142@2x.png" width="800" alt="Install Skills Marketplace" /></p>
+
+<p align="center"><strong>Projects</strong></p>
+<p align="center"><img src="assets/CleanShot_20260316_231202@2x.png" width="800" alt="Projects" /></p>
+
+<p align="center"><strong>Settings</strong></p>
+<p align="center"><img src="assets/CleanShot_20260316_231216@2x.png" width="800" alt="Settings" /></p>
 
 ## Features
 
