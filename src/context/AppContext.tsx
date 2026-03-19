@@ -114,6 +114,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function init() {
       await refreshAppData();
+      // Apply saved text size on startup
+      const savedSize = await api.getSettings("text_size").catch(() => null);
+      if (savedSize) {
+        const zoomMap: Record<string, string> = { small: "0.9", default: "1", large: "1.1", xlarge: "1.2" };
+        document.documentElement.style.zoom = zoomMap[savedSize] || "1";
+      }
     }
     init();
   }, [refreshAppData]);

@@ -16,6 +16,7 @@ import {
   Monitor,
   BookOpen,
   Download,
+  Type,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -50,6 +51,7 @@ export function Settings() {
   const [gitRemoteSaving, setGitRemoteSaving] = useState(false);
   const [proxyInput, setProxyInput] = useState("");
   const [proxySaving, setProxySaving] = useState(false);
+  const [textSize, setTextSize] = useState("default");
   const GITHUB_URL = "https://github.com/xingkongliang/skills-manager";
 
   useEffect(() => {
@@ -61,6 +63,7 @@ export function Settings() {
       const normalized = (v ?? "true").trim().toLowerCase();
       setShowTrayIcon(!(normalized === "false" || normalized === "0" || normalized === "no" || normalized === "off"));
     });
+    api.getSettings("text_size").then((v) => { if (v) { setTextSize(v); applyTextSize(v); } });
     api.getCentralRepoPath().then(setCentralRepoPath).catch(() => {});
 
     (async () => {
@@ -142,6 +145,23 @@ export function Settings() {
     localStorage.setItem("language", lng);
     i18n.changeLanguage(lng);
     api.setSettings("language", lng);
+  };
+
+  const textSizeZoomMap: Record<string, string> = {
+    small: "0.9",
+    default: "1",
+    large: "1.1",
+    xlarge: "1.2",
+  };
+
+  const applyTextSize = (size: string) => {
+    document.documentElement.style.zoom = textSizeZoomMap[size] || "1";
+  };
+
+  const handleTextSizeChange = (size: string) => {
+    setTextSize(size);
+    applyTextSize(size);
+    api.setSettings("text_size", size);
   };
 
   const handleOpenRepoInFinder = async () => {
@@ -428,6 +448,37 @@ export function Settings() {
               </div>
             </div>
 
+            {/* Text size */}
+            <div className="px-4 py-3 flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-[13px] text-secondary font-medium mb-0.5">{t("settings.textSize")}</h3>
+                <p className="text-[13px] text-muted">{t("settings.textSizeDesc")}</p>
+              </div>
+              <div className="flex bg-background border border-border-subtle rounded-[4px] p-px shrink-0">
+                {([
+                  { value: "small", label: t("settings.textSizeSmall") },
+                  { value: "default", label: t("settings.textSizeDefault") },
+                  { value: "large", label: t("settings.textSizeLarge") },
+                  { value: "xlarge", label: t("settings.textSizeXLarge") },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleTextSizeChange(opt.value)}
+                    className={cn(
+                      segmentedButtonClass,
+                      textSize === opt.value ? "bg-surface-active text-secondary" : "text-muted hover:text-tertiary"
+                    )}
+                  >
+                    {opt.value === "small" && <Type className="w-2.5 h-2.5" />}
+                    {opt.value === "default" && <Type className="w-3 h-3" />}
+                    {opt.value === "large" && <Type className="w-3.5 h-3.5" />}
+                    {opt.value === "xlarge" && <Type className="w-4 h-4" />}
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Default scenario */}
             <div className="px-4 py-3 flex items-center justify-between gap-4">
               <div>
@@ -459,6 +510,7 @@ export function Settings() {
                   className={fieldClass}
                 >
                   <option value="zh">简体中文 (zh-CN)</option>
+                  <option value="zh-TW">繁體中文 (zh-TW)</option>
                   <option value="en">English (en-US)</option>
                 </select>
               </div>

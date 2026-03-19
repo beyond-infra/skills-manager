@@ -222,7 +222,8 @@
       "success": "{{name}} 安装成功",
       "done": "完成",
       "cancelled": "安装已取消",
-      "timeout": "安装超时 — 请检查网络连接"
+      "timeout": "安装超时 — 请检查网络连接",
+      "view": "查看"
     },
     "local": {
       "title": "导入本地 Skill 源",
@@ -241,6 +242,7 @@
     "gitDesc": "输入公共或私有 Git 仓库地址。私有仓库请确保本地已配置对应的 SSH 密钥。",
     "repoUrl": "仓库地址",
     "repoUrlPlaceholder": "https://github.com/user/repo.git 或 git@github.com...",
+    "gitAlreadyInstalled": "\"{{name}}\" 已安装，重新安装将会更新。",
     "installClone": "克隆并预览",
     "gitPreview": {
       "title": "选择要导入的技能",
@@ -301,6 +303,12 @@
     "themeLight": "浅色",
     "themeDark": "深色",
     "themeSystem": "跟随系统",
+    "textSize": "文字大小",
+    "textSizeDesc": "调整应用的基础字号。",
+    "textSizeSmall": "小",
+    "textSizeDefault": "默认",
+    "textSizeLarge": "大",
+    "textSizeXLarge": "特大",
     "language": "语言",
     "help": "帮助",
     "about": "关于",

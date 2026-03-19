@@ -222,7 +222,8 @@
       "success": "{{name}} installed successfully",
       "done": "Done",
       "cancelled": "Installation cancelled",
-      "timeout": "Installation timed out — check your network"
+      "timeout": "Installation timed out — check your network",
+      "view": "View"
     },
     "local": {
       "title": "Import a local skill source",
@@ -241,6 +242,7 @@
     "gitDesc": "Enter a public or private Git repository URL. For private repos, ensure SSH keys are configured.",
     "repoUrl": "Repository URL",
     "repoUrlPlaceholder": "https://github.com/user/repo.git or git@github.com...",
+    "gitAlreadyInstalled": "\"{{name}}\" is already installed. Reinstalling will update it.",
     "installClone": "Clone & Preview",
     "gitPreview": {
       "title": "Select Skills to Import",
@@ -301,6 +303,12 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "themeSystem": "System",
+    "textSize": "Text Size",
+    "textSizeDesc": "Adjust the app's base font size.",
+    "textSizeSmall": "Small",
+    "textSizeDefault": "Default",
+    "textSizeLarge": "Large",
+    "textSizeXLarge": "Extra Large",
     "language": "Language",
     "help": "Help",
     "about": "About",

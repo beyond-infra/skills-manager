@@ -29,7 +29,7 @@ import * as api from "../lib/tauri";
 import type { ScanResult, SkillsShSkill, BatchImportResult, GitPreviewResult } from "../lib/tauri";
 import { open } from "@tauri-apps/plugin-dialog";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { listen } from "@tauri-apps/api/event";
 import { StatusBanner } from "../components/StatusBanner";
 import { getErrorMessage, getErrorKind } from "../lib/error";
@@ -42,7 +42,8 @@ const MARKET_SEARCH_CACHE_MAX_ENTRIES = 150;
 
 export function InstallSkills() {
   const { t } = useTranslation();
-  const { refreshScenarios, refreshManagedSkills, managedSkills } = useApp();
+  const { refreshScenarios, refreshManagedSkills, managedSkills, openSkillDetailById } = useApp();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<"market" | "local" | "git">("market");
   const [marketTab, setMarketTab] = useState<"hot" | "trending" | "alltime">("hot");
@@ -91,6 +92,23 @@ export function InstallSkills() {
     setSourceFocusedIndex(-1);
   }, []);
 
+  const managedSkillsRef = useRef(managedSkills);
+  managedSkillsRef.current = managedSkills;
+
+  const goToSkill = useCallback((skillName: string) => {
+    // Use ref to get the latest managedSkills after refresh
+    const skills = managedSkillsRef.current;
+    const skill = skills.find(
+      (s) => s.name === skillName || s.source_ref === skillName
+    );
+    if (skill) {
+      navigate("/my-skills");
+      setTimeout(() => openSkillDetailById(skill.id), 150);
+    } else {
+      navigate("/my-skills");
+    }
+  }, [navigate, openSkillDetailById]);
+
   const pruneMarketSearchCache = useCallback(() => {
     const now = Date.now();
     const entries = Array.from(marketSearchCacheRef.current.entries());
@@ -122,6 +140,15 @@ export function InstallSkills() {
       }
     }
     return set;
+  }, [managedSkills]);
+
+  const findInstalledByGitUrl = useCallback((url: string) => {
+    const trimmed = url.trim().replace(/\.git$/, "").toLowerCase();
+    return managedSkills.find((s) => {
+      if (!s.source_ref) return false;
+      const ref = s.source_ref.replace(/\.git$/, "").toLowerCase();
+      return ref === trimmed || ref.endsWith("/" + trimmed.split("/").slice(-2).join("/"));
+    });
   }, [managedSkills]);
 
   useEffect(() => {
@@ -245,24 +272,25 @@ export function InstallSkills() {
     }
   }, [activeTab, scanLoading, scanResult, runScan]);
 
-  const installLocalSource = (sourcePath: string) => {
+  const installLocalSource = async (sourcePath: string) => {
     const name = sourcePath.split("/").pop() || sourcePath;
-    toast.promise(
-      (async () => {
-        await api.installLocal(sourcePath);
-        await Promise.all([refreshScenarios(), refreshManagedSkills()]);
-        await runScan();
-      })(),
-      {
-        loading: t("install.toast.installing", { name }),
-        success: t("install.toast.success", { name }),
-        error: (e) => {
-          const message = e?.toString?.() || t("common.error");
-          setLocalError(message);
-          return message;
+    const toastId = toast.loading(t("install.toast.installing", { name }));
+    try {
+      await api.installLocal(sourcePath);
+      await Promise.all([refreshScenarios(), refreshManagedSkills()]);
+      await runScan();
+      toast.success(t("install.toast.success", { name }), {
+        id: toastId,
+        action: {
+          label: t("install.toast.view"),
+          onClick: () => goToSkill(name),
         },
-      }
-    );
+      });
+    } catch (e) {
+      const message = (e as Error)?.toString?.() || t("common.error");
+      setLocalError(message);
+      toast.error(message, { id: toastId });
+    }
   };
 
   const handleLocalFolderInstall = async () => {
@@ -377,7 +405,13 @@ export function InstallSkills() {
       );
       await api.installFromSkillssh(skill.source, skill.skill_id);
       await Promise.all([refreshScenarios(), refreshManagedSkills()]);
-      toast.success(t("install.toast.success", { name: displayName }), { id: toastId });
+      toast.success(t("install.toast.success", { name: displayName }), {
+        id: toastId,
+        action: {
+          label: t("install.toast.view"),
+          onClick: () => goToSkill(displayName),
+        },
+      });
     } catch (error: unknown) {
       if (getErrorKind(error) === "cancelled") {
         toast.info(t("install.toast.cancelled"), { id: toastId });
@@ -1327,6 +1361,14 @@ export function InstallSkills() {
                   className="app-input w-full bg-background"
                 />
               </div>
+              {gitUrl.trim() && findInstalledByGitUrl(gitUrl) && (
+                <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[13px] text-amber-400">
+                  <Check className="h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    {t("install.gitAlreadyInstalled", { name: findInstalledByGitUrl(gitUrl)!.name })}
+                  </span>
+                </div>
+              )}
               <div className="flex gap-2 pt-2">
                 {gitLoading ? (
                   <button
@@ -1341,10 +1383,17 @@ export function InstallSkills() {
                   <button
                     onClick={handleGitPreview}
                     disabled={!gitUrl.trim()}
-                    className="app-button-primary flex w-full"
+                    className={cn(
+                      "flex w-full",
+                      gitUrl.trim() && findInstalledByGitUrl(gitUrl)
+                        ? "app-button-secondary bg-background"
+                        : "app-button-primary"
+                    )}
                   >
                     <DownloadCloud className="h-3.5 w-3.5" />
-                    {t("install.installClone")}
+                    {gitUrl.trim() && findInstalledByGitUrl(gitUrl)
+                      ? t("install.gitReinstall")
+                      : t("install.installClone")}
                   </button>
                 )}
               </div>
