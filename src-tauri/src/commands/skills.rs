@@ -457,23 +457,7 @@ pub async fn confirm_git_install(
 ) -> Result<(), AppError> {
     let store = store.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let temp_path = PathBuf::from(&temp_dir);
-
-        // Security: temp_path must be inside OS temp dir and carry our prefix.
-        let expected_prefix = std::env::temp_dir();
-        if !temp_path.starts_with(&expected_prefix) {
-            return Err(AppError::invalid_input("Invalid temp directory"));
-        }
-        let dir_name_str = temp_path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_default();
-        if !dir_name_str.starts_with("skills-manager-clone-") {
-            return Err(AppError::invalid_input("Invalid temp directory"));
-        }
-        if !temp_path.exists() {
-            return Err(AppError::invalid_input("Clone session expired, please try again"));
-        }
+        let temp_path = validate_clone_temp_path(&temp_dir)?;
 
         let result: Result<(), AppError> = (|| {
             if items.is_empty() {
@@ -526,16 +510,8 @@ pub async fn cancel_git_preview(
     temp_dir: String,
 ) -> Result<(), AppError> {
     tauri::async_runtime::spawn_blocking(move || {
-        let temp_path = PathBuf::from(&temp_dir);
-        let expected_prefix = std::env::temp_dir();
-        if temp_path.starts_with(&expected_prefix) {
-            let dir_name_str = temp_path
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_default();
-            if dir_name_str.starts_with("skills-manager-clone-") {
-                git_fetcher::cleanup_temp(&temp_path);
-            }
+        if let Ok(temp_path) = validate_clone_temp_path(&temp_dir) {
+            git_fetcher::cleanup_temp(&temp_path);
         }
         Ok(())
     })
@@ -1074,6 +1050,31 @@ fn collect_git_skill_dirs(skill_dir: &Path) -> Vec<PathBuf> {
     } else {
         dirs
     }
+}
+
+/// Validate and canonicalize a temp directory path used by the git preview/install flow.
+/// Returns the canonicalized path if it passes security checks.
+fn validate_clone_temp_path(temp_dir: &str) -> Result<PathBuf, AppError> {
+    let raw_path = PathBuf::from(temp_dir);
+    if !raw_path.exists() {
+        return Err(AppError::invalid_input("Clone session expired, please try again"));
+    }
+    // Canonicalize to resolve symlinks and `..` segments before checking prefix.
+    let temp_path = raw_path.canonicalize().map_err(|_| {
+        AppError::invalid_input("Invalid temp directory")
+    })?;
+    let expected_prefix = std::env::temp_dir().canonicalize().unwrap_or_else(|_| std::env::temp_dir());
+    if !temp_path.starts_with(&expected_prefix) {
+        return Err(AppError::invalid_input("Invalid temp directory"));
+    }
+    let dir_name_str = temp_path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+    if !dir_name_str.starts_with("skills-manager-clone-") {
+        return Err(AppError::invalid_input("Invalid temp directory"));
+    }
+    Ok(temp_path)
 }
 
 fn resolve_skill_dir(

@@ -18,7 +18,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  MoreHorizontal,
   X,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -60,6 +59,7 @@ export function InstallSkills() {
   const [gitLoading, setGitLoading] = useState(false);
   const [gitCancelKey, setGitCancelKey] = useState<string | null>(null);
   const [gitPreview, setGitPreview] = useState<GitPreviewResult | null>(null);
+  const [gitPreviewRepoUrl, setGitPreviewRepoUrl] = useState<string | null>(null);
   const [gitSelections, setGitSelections] = useState<{ dir_name: string; name: string; description: string | null; selected: boolean }[]>([]);
   const [gitConfirmLoading, setGitConfirmLoading] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
@@ -387,6 +387,7 @@ export function InstallSkills() {
       const preview = await api.previewGitInstall(url);
       toast.dismiss(toastId);
       setGitPreview(preview);
+      setGitPreviewRepoUrl(url);
       setGitSelections(preview.skills.map((s) => ({
         dir_name: s.dir_name,
         name: s.name,
@@ -407,21 +408,25 @@ export function InstallSkills() {
   };
 
   const handleGitPreviewClose = () => {
+    if (gitConfirmLoading) return;
     if (gitPreview) {
       api.cancelGitPreview(gitPreview.temp_dir).catch(() => {});
     }
     setGitPreview(null);
+    setGitPreviewRepoUrl(null);
     setGitSelections([]);
   };
 
   const handleGitConfirm = async () => {
     if (!gitPreview) return;
+    const repoUrl = gitPreviewRepoUrl ?? gitUrl.trim();
+    if (!repoUrl) return;
     const selected = gitSelections.filter((s) => s.selected);
     if (selected.length === 0) return;
     setGitConfirmLoading(true);
     try {
       await api.confirmGitInstall(
-        gitUrl.trim(),
+        repoUrl,
         gitPreview.temp_dir,
         selected.map((s) => ({ dir_name: s.dir_name, name: s.name }))
       );
@@ -429,6 +434,7 @@ export function InstallSkills() {
       toast.success(t("install.toast.success", { name: selected.map((s) => s.name).join(", ") }));
       setGitUrl("");
       setGitPreview(null);
+      setGitPreviewRepoUrl(null);
       setGitSelections([]);
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, t("common.error")));
@@ -1114,6 +1120,7 @@ export function InstallSkills() {
               <h2 className="text-[14px] font-semibold text-primary">{t("install.gitPreview.title")}</h2>
               <button
                 onClick={handleGitPreviewClose}
+                disabled={gitConfirmLoading}
                 className="rounded p-1 text-muted transition-colors hover:text-secondary"
               >
                 <X className="h-4 w-4" />
@@ -1126,6 +1133,7 @@ export function InstallSkills() {
               <button
                 type="button"
                 onClick={() => setGitSelections((prev) => prev.map((s) => ({ ...s, selected: true })))}
+                disabled={gitConfirmLoading}
                 className="text-[13px] text-accent-light hover:underline"
               >
                 {t("install.gitPreview.selectAll")}
@@ -1134,6 +1142,7 @@ export function InstallSkills() {
               <button
                 type="button"
                 onClick={() => setGitSelections((prev) => prev.map((s) => ({ ...s, selected: false })))}
+                disabled={gitConfirmLoading}
                 className="text-[13px] text-muted hover:underline"
               >
                 {t("install.gitPreview.deselectAll")}
@@ -1157,6 +1166,7 @@ export function InstallSkills() {
                     <input
                       type="checkbox"
                       checked={item.selected}
+                      disabled={gitConfirmLoading}
                       onChange={(e) =>
                         setGitSelections((prev) =>
                           prev.map((s, i) => i === idx ? { ...s, selected: e.target.checked } : s)
@@ -1173,7 +1183,7 @@ export function InstallSkills() {
                             prev.map((s, i) => i === idx ? { ...s, name: e.target.value } : s)
                           )
                         }
-                        disabled={!item.selected}
+                        disabled={!item.selected || gitConfirmLoading}
                         placeholder={t("install.gitPreview.namePlaceholder")}
                         className="app-input w-full bg-background py-1 text-[13px]"
                       />
@@ -1190,6 +1200,7 @@ export function InstallSkills() {
               <button
                 type="button"
                 onClick={handleGitPreviewClose}
+                disabled={gitConfirmLoading}
                 className="px-3 py-1.5 text-[13px] font-medium text-muted hover:text-secondary transition-colors"
               >
                 {t("common.cancel")}
