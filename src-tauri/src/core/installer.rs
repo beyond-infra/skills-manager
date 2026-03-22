@@ -169,6 +169,19 @@ fn safe_extract(archive: &mut zip::ZipArchive<std::fs::File>, dest: &Path) -> Re
             }
             let mut outfile = std::fs::File::create(&entry_path)?;
             std::io::copy(&mut entry, &mut outfile)?;
+
+            // Restore Unix file permissions (especially executable bits)
+            // from the ZIP entry metadata.
+            #[cfg(unix)]
+            {
+                if let Some(mode) = entry.unix_mode() {
+                    use std::os::unix::fs::PermissionsExt;
+                    let _ = std::fs::set_permissions(
+                        &entry_path,
+                        std::fs::Permissions::from_mode(mode),
+                    );
+                }
+            }
         }
     }
     Ok(())
