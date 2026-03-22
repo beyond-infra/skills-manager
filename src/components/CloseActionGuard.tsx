@@ -8,6 +8,16 @@ export function CloseActionGuard() {
 
   useEffect(() => {
     const unlisten = listen("window-close-requested", async () => {
+      const tray = await api.getSettings("show_tray_icon");
+      const trayEnabled = (() => {
+        const normalized = (tray ?? "true").trim().toLowerCase();
+        return !(normalized === "false" || normalized === "0" || normalized === "no" || normalized === "off");
+      })();
+      if (!trayEnabled) {
+        api.appExit();
+        return;
+      }
+
       const pref = await api.getSettings("close_action");
       if (pref === "close") {
         api.appExit();

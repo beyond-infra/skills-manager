@@ -7,6 +7,20 @@ mod core;
 
 /// Shared flag: when true, CloseRequested should NOT be prevented.
 pub static QUITTING: AtomicBool = AtomicBool::new(false);
+const MAIN_TRAY_ID: &str = "main-tray";
+
+fn parse_bool_setting(value: Option<String>, default: bool) -> bool {
+    match value.as_deref().map(str::trim).map(str::to_ascii_lowercase) {
+        Some(v) if matches!(v.as_str(), "true" | "1" | "yes" | "on") => true,
+        Some(v) if matches!(v.as_str(), "false" | "0" | "no" | "off") => false,
+        _ => default,
+    }
+}
+
+fn is_tray_icon_enabled(store: &Arc<core::skill_store::SkillStore>) -> bool {
+    let value = store.get_setting("show_tray_icon").ok().flatten();
+    parse_bool_setting(value, true)
+}
 
 fn restore_main_window(app: &tauri::AppHandle) {
     let app_for_main = app.clone();
@@ -53,6 +67,75 @@ fn request_quit(app: &tauri::AppHandle) {
     }
 }
 
+fn ensure_tray_icon(app: &tauri::AppHandle) -> tauri::Result<()> {
+    if app.tray_by_id(MAIN_TRAY_ID).is_some() {
+        return Ok(());
+    }
+
+    use tauri::menu::{Menu, MenuItem};
+    use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+
+    let show_item = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
+    let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+
+    let mut builder = TrayIconBuilder::with_id(MAIN_TRAY_ID)
+        .icon(app.default_window_icon().unwrap().clone())
+        .tooltip("Skills Manager")
+        .menu(&menu)
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "show" => {
+                log::info!("Tray menu clicked: show");
+                restore_main_window(app)
+            }
+            "quit" => {
+                log::info!("Tray menu clicked: quit");
+                request_quit(app)
+            }
+            _ => {}
+        });
+
+    // On macOS, left-click on tray icon opens the menu by default;
+    // on Windows/Linux, left-click restores the window directly.
+    if !cfg!(target_os = "macos") {
+        builder = builder
+            .show_menu_on_left_click(false)
+            .on_tray_icon_event(|tray, event| {
+                if let TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } = event
+                {
+                    restore_main_window(tray.app_handle());
+                }
+            });
+    }
+
+    let _tray = builder.build(app)?;
+    log::info!("Tray icon created");
+    Ok(())
+}
+
+pub fn set_tray_icon_enabled(app: &tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    let app_for_main = app.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    app.run_on_main_thread(move || {
+        let result = if enabled {
+            ensure_tray_icon(&app_for_main).map_err(|e| e.to_string())
+        } else {
+            let _ = app_for_main.remove_tray_by_id(MAIN_TRAY_ID);
+            log::info!("Tray icon removed");
+            Ok(())
+        };
+        let _ = tx.send(result);
+    })
+    .map_err(|e| e.to_string())?;
+
+    rx.recv()
+        .map_err(|e| format!("Failed to receive tray update result: {e}"))?
+}
+
 /// Quit the application cleanly: destroy the main window, then exit.
 /// In dev mode, also kill sibling processes in the same process group
 /// so that `tauri dev`'s beforeDevCommand (vite) gets cleaned up.
@@ -84,6 +167,7 @@ pub fn run() {
     let store = Arc::new(
         core::skill_store::SkillStore::new(&db_path).expect("Failed to initialize database"),
     );
+    let store_for_setup = store.clone();
     initialize_startup_scenario(&store).expect("Failed to initialize startup scenario");
 
     let cancel_registry = Arc::new(core::install_cancel::InstallCancelRegistry::new());
@@ -98,7 +182,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .setup(|app| {
+        .setup(move |app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -107,48 +191,9 @@ pub fn run() {
                 )?;
             }
 
-            // System tray
-            use tauri::menu::{Menu, MenuItem};
-            use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-
-            let show_item = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
-
-            let mut builder = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("Skills Manager")
-                .menu(&menu)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "show" => {
-                        log::info!("Tray menu clicked: show");
-                        restore_main_window(app)
-                    }
-                    "quit" => {
-                        log::info!("Tray menu clicked: quit");
-                        request_quit(app)
-                    }
-                    _ => {}
-                });
-
-            // On macOS, left-click on tray icon opens the menu by default;
-            // on Windows/Linux, left-click restores the window directly.
-            if !cfg!(target_os = "macos") {
-                builder = builder
-                    .show_menu_on_left_click(false)
-                    .on_tray_icon_event(|tray, event| {
-                        if let TrayIconEvent::Click {
-                            button: MouseButton::Left,
-                            button_state: MouseButtonState::Up,
-                            ..
-                        } = event
-                        {
-                            restore_main_window(tray.app_handle());
-                        }
-                    });
+            if is_tray_icon_enabled(&store_for_setup) {
+                ensure_tray_icon(app.handle())?;
             }
-
-            let _tray = builder.build(app)?;
 
             // Intercept window close — let frontend decide (close vs hide to tray)
             // When QUITTING is set, allow the close to proceed so the process fully exits.

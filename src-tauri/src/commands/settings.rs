@@ -24,15 +24,31 @@ pub async fn get_settings(key: String, store: State<'_, Arc<SkillStore>>) -> Res
 
 #[tauri::command]
 pub async fn set_settings(
+    app: tauri::AppHandle,
     key: String,
     value: String,
     store: State<'_, Arc<SkillStore>>,
 ) -> Result<(), AppError> {
     let store = store.inner().clone();
+    let key_for_store = key.clone();
+    let value_for_store = value.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        store.set_setting(&key, &value).map_err(AppError::db)
+        store.set_setting(&key_for_store, &value_for_store).map_err(AppError::db)?;
+        if key_for_store == "show_tray_icon" {
+            let tray_enabled = matches!(value_for_store.trim().to_ascii_lowercase().as_str(), "true" | "1" | "yes" | "on");
+            if !tray_enabled {
+                store.set_setting("close_action", "close").map_err(AppError::db)?;
+            }
+        }
+        Ok::<(), AppError>(())
     })
-    .await?
+    .await??;
+
+    if key == "show_tray_icon" {
+        let enabled = matches!(value.trim().to_ascii_lowercase().as_str(), "true" | "1" | "yes" | "on");
+        crate::set_tray_icon_enabled(&app, enabled).map_err(AppError::io)?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -121,7 +137,32 @@ pub async fn app_exit(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
-pub async fn hide_to_tray(app: tauri::AppHandle, window: tauri::WebviewWindow) -> Result<(), AppError> {
+pub async fn hide_to_tray(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<(), AppError> {
+    let show_tray_icon = {
+        let store = store.inner().clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            let value = store.get_setting("show_tray_icon").map_err(AppError::db)?;
+            Ok::<bool, AppError>(match value
+                .as_deref()
+                .map(str::trim)
+                .map(str::to_ascii_lowercase)
+            {
+                Some(v) if matches!(v.as_str(), "false" | "0" | "no" | "off") => false,
+                _ => true,
+            })
+        })
+        .await??
+    };
+
+    if !show_tray_icon {
+        crate::quit_app(&app);
+        return Ok(());
+    }
+
     window.hide().map_err(|e| AppError::io(e.to_string()))?;
     // On macOS, avoid app.hide() (app-level hidden state can block restore in tray flow).
     // Keep app running and hide only the window + Dock icon.

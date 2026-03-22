@@ -333,7 +333,12 @@
     "closeActionDesc": "Choose what happens when you click the window close button.",
     "closeAction_ask": "Ask each time",
     "closeAction_hide": "Minimize to tray",
-    "closeAction_close": "Quit app"
+    "closeAction_close": "Quit app",
+    "trayIcon": "Tray Icon",
+    "trayIconDesc": "Show an icon in the system tray for quick Show and Quit actions.",
+    "trayIcon_on": "Show",
+    "trayIcon_off": "Hide",
+    "trayIconOffHint": "Tray icon is hidden, so closing the window will quit the app."
   },
   "closeAction": {
     "title": "Close behavior",
