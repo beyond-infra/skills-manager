@@ -159,7 +159,9 @@
     "selectHint": "点击 Skill 开始选择",
     "deleteSelected": "删除 {{count}} 个",
     "batchDeleteConfirm": "确定彻底删除选中的 {{count}} 个 Skill 吗？中央仓库文件、场景关联和已同步到各 Agent 的目标都会被移除。",
-    "batchDeleted": "已删除 {{count}} 个 Skill"
+    "batchDeleted": "已删除 {{count}} 个 Skill",
+    "batchDeleteFailed": "{{count}} 个 Skill 删除失败",
+    "cancelSelect": "取消多选"
   },
   "install": {
     "title": "安装 Skills",

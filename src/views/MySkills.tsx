@@ -331,11 +331,22 @@ export function MySkills() {
 
   const handleBatchDelete = async () => {
     const ids = Array.from(selectedIds);
+    let deleted = 0;
     for (const id of ids) {
-      await api.deleteManagedSkill(id);
-      if (selectedSkill?.id === id) closeSkillDetail();
+      try {
+        await api.deleteManagedSkill(id);
+        if (selectedSkill?.id === id) closeSkillDetail();
+        deleted++;
+      } catch {
+        // continue deleting remaining
+      }
     }
-    toast.success(t("mySkills.batchDeleted", { count: ids.length }));
+    if (deleted < ids.length) {
+      toast.error(t("mySkills.batchDeleteFailed", { count: ids.length - deleted }));
+    }
+    if (deleted > 0) {
+      toast.success(t("mySkills.batchDeleted", { count: deleted }));
+    }
     setSelectedIds(new Set());
     setIsMultiSelect(false);
     setBatchDeleteConfirm(false);

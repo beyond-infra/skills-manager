@@ -159,7 +159,9 @@
     "selectHint": "Click skills to select",
     "deleteSelected": "Delete {{count}}",
     "batchDeleteConfirm": "Delete {{count}} selected skills permanently? This removes their central library files, scenario links, and synced agent targets.",
-    "batchDeleted": "{{count}} skills deleted"
+    "batchDeleted": "{{count}} skills deleted",
+    "batchDeleteFailed": "{{count}} skills failed to delete",
+    "cancelSelect": "Cancel selection"
   },
   "install": {
     "title": "Install Skills",
