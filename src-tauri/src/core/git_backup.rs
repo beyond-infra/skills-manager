@@ -82,12 +82,18 @@ pub fn get_status(skills_dir: &Path) -> Result<GitBackupStatus> {
 
     let last_commit = run_git(skills_dir, &["log", "-1", "--format=%s"]).ok();
 
-    let last_commit_time =
-        run_git(skills_dir, &["log", "-1", "--format=%cI"]).ok();
+    let last_commit_time = run_git(skills_dir, &["log", "-1", "--format=%cI"]).ok();
 
     let current_snapshot_tag = run_git(
         skills_dir,
-        &["tag", "--points-at", "HEAD", "--list", "sm-v-*", "--sort=-creatordate"],
+        &[
+            "tag",
+            "--points-at",
+            "HEAD",
+            "--list",
+            "sm-v-*",
+            "--sort=-creatordate",
+        ],
     )
     .ok()
     .and_then(|output| {
@@ -259,9 +265,19 @@ pub fn create_snapshot_tag(skills_dir: &Path) -> Result<String> {
     // when a previous sync created a tag but push failed.
     let existing_on_head = run_git(
         skills_dir,
-        &["tag", "--points-at", "HEAD", "--list", "sm-v-*", "--sort=-creatordate"],
+        &[
+            "tag",
+            "--points-at",
+            "HEAD",
+            "--list",
+            "sm-v-*",
+            "--sort=-creatordate",
+        ],
     )?;
-    if let Some(tag) = existing_on_head.lines().find(|line| !line.trim().is_empty()) {
+    if let Some(tag) = existing_on_head
+        .lines()
+        .find(|line| !line.trim().is_empty())
+    {
         return Ok(tag.trim().to_string());
     }
 
@@ -270,7 +286,12 @@ pub fn create_snapshot_tag(skills_dir: &Path) -> Result<String> {
     let mut tag = format!("sm-v-{}-{}", timestamp, short_sha);
 
     // Avoid collision when multiple snapshots happen within the same second.
-    if run_git(skills_dir, &["rev-parse", "-q", "--verify", &format!("refs/tags/{tag}")]).is_ok() {
+    if run_git(
+        skills_dir,
+        &["rev-parse", "-q", "--verify", &format!("refs/tags/{tag}")],
+    )
+    .is_ok()
+    {
         let millis = Utc::now().timestamp_subsec_millis();
         tag = format!("sm-v-{}-{:03}-{}", timestamp, millis, short_sha);
     }
@@ -281,9 +302,15 @@ pub fn create_snapshot_tag(skills_dir: &Path) -> Result<String> {
 }
 
 /// List snapshot versions, newest first.
-pub fn list_snapshot_versions(skills_dir: &Path, limit: Option<usize>) -> Result<Vec<GitBackupVersion>> {
+pub fn list_snapshot_versions(
+    skills_dir: &Path,
+    limit: Option<usize>,
+) -> Result<Vec<GitBackupVersion>> {
     ensure_repo(skills_dir)?;
-    let tags = run_git(skills_dir, &["tag", "--list", "sm-v-*", "--sort=-creatordate"])?;
+    let tags = run_git(
+        skills_dir,
+        &["tag", "--list", "sm-v-*", "--sort=-creatordate"],
+    )?;
     if tags.trim().is_empty() {
         return Ok(Vec::new());
     }
@@ -298,7 +325,8 @@ pub fn list_snapshot_versions(skills_dir: &Path, limit: Option<usize>) -> Result
             commit.clone()
         };
         let message = run_git(skills_dir, &["log", "-1", "--format=%s", tag]).unwrap_or_default();
-        let committed_at = run_git(skills_dir, &["log", "-1", "--format=%cI", tag]).unwrap_or_default();
+        let committed_at =
+            run_git(skills_dir, &["log", "-1", "--format=%cI", tag]).unwrap_or_default();
 
         versions.push(GitBackupVersion {
             tag: tag.to_string(),
@@ -318,7 +346,10 @@ pub fn restore_snapshot_version(skills_dir: &Path, tag: &str) -> Result<()> {
     if !tag.starts_with("sm-v-") {
         anyhow::bail!("Invalid snapshot tag");
     }
-    run_git_checked(skills_dir, &["rev-parse", "-q", "--verify", &format!("refs/tags/{tag}")])?;
+    run_git_checked(
+        skills_dir,
+        &["rev-parse", "-q", "--verify", &format!("refs/tags/{tag}")],
+    )?;
 
     let status = run_git(skills_dir, &["status", "--porcelain"])?;
     if !status.is_empty() {
@@ -343,14 +374,20 @@ pub fn restore_snapshot_version(skills_dir: &Path, tag: &str) -> Result<()> {
         if !changed.is_empty() {
             run_git_checked(
                 skills_dir,
-                &["commit", "-m", &format!("restore: switch skills library to {}", tag)],
+                &[
+                    "commit",
+                    "-m",
+                    &format!("restore: switch skills library to {}", tag),
+                ],
             )?;
         }
         Ok(())
     })();
 
     // Always clean up the restore-point tag, regardless of outcome.
-    let cleanup = || { let _ = run_git(skills_dir, &["tag", "-d", &restore_point]); };
+    let cleanup = || {
+        let _ = run_git(skills_dir, &["tag", "-d", &restore_point]);
+    };
 
     match restore_result {
         Ok(()) => {
@@ -361,7 +398,8 @@ pub fn restore_snapshot_version(skills_dir: &Path, tag: &str) -> Result<()> {
             // Best-effort rollback to pre-restore HEAD.
             let _ = run_git_checked(skills_dir, &["read-tree", "--reset", "-u", &restore_point]);
             cleanup();
-            Err(err).context("Restore failed after mutating working tree; attempted automatic rollback")
+            Err(err)
+                .context("Restore failed after mutating working tree; attempted automatic rollback")
         }
     }
 }
@@ -455,7 +493,10 @@ fn run_git_checked(dir: &Path, args: &[&str]) -> Result<()> {
 }
 
 fn get_ahead_behind(dir: &Path) -> Result<(u32, u32)> {
-    let output = run_git(dir, &["rev-list", "--left-right", "--count", "HEAD...@{upstream}"])?;
+    let output = run_git(
+        dir,
+        &["rev-list", "--left-right", "--count", "HEAD...@{upstream}"],
+    )?;
     let parts: Vec<&str> = output.split_whitespace().collect();
     if parts.len() == 2 {
         let ahead = parts[0].parse().unwrap_or(0);

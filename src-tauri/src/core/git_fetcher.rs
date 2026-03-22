@@ -77,9 +77,7 @@ pub fn validate_git_url(url: &str) -> Result<()> {
         }
     }
 
-    anyhow::bail!(
-        "URL scheme not allowed: only https, http, ssh, and git@ are permitted"
-    );
+    anyhow::bail!("URL scheme not allowed: only https, http, ssh, and git@ are permitted");
 }
 
 pub fn clone_repo_ref(
@@ -189,15 +187,18 @@ pub fn get_head_revision(repo_dir: &Path) -> Result<String> {
     Ok(head.id().to_string())
 }
 
-pub fn resolve_remote_revision(url: &str, branch: Option<&str>, proxy_url: Option<&str>) -> Result<String> {
+pub fn resolve_remote_revision(
+    url: &str,
+    branch: Option<&str>,
+    proxy_url: Option<&str>,
+) -> Result<String> {
     if let Ok(revision) = resolve_remote_revision_with_git(url, branch, proxy_url) {
         return Ok(revision);
     }
 
-    let repo = Repository::init_bare(std::env::temp_dir().join(format!(
-        "skills-manager-remote-{}",
-        uuid::Uuid::new_v4()
-    )))?;
+    let repo = Repository::init_bare(
+        std::env::temp_dir().join(format!("skills-manager-remote-{}", uuid::Uuid::new_v4())),
+    )?;
     let mut remote = repo.remote_anonymous(url)?;
     let mut proxy_opts = git2::ProxyOptions::new();
     if let Some(proxy) = proxy_url.filter(|s| !s.is_empty()) {
@@ -286,7 +287,11 @@ pub fn find_skill_dir(repo_dir: &Path, skill_id: Option<&str>) -> Result<PathBuf
 
         // Recursive search: match by directory name or SKILL.md name field
         let mut name_match: Option<PathBuf> = None;
-        for e in walkdir::WalkDir::new(repo_dir).max_depth(6).into_iter().flatten() {
+        for e in walkdir::WalkDir::new(repo_dir)
+            .max_depth(6)
+            .into_iter()
+            .flatten()
+        {
             if e.file_type().is_dir() {
                 if e.file_name().to_string_lossy() == id {
                     return Ok(e.path().to_path_buf());
@@ -332,10 +337,9 @@ pub fn cleanup_temp(path: &Path) {
 }
 
 fn parse_github_tree_url(url: &str) -> Option<(String, String, Option<String>)> {
-    let re = regex::Regex::new(
-        r"^(https://github\.com/[^/]+/[^/]+?)(?:\.git)?/tree/([^/]+)(?:/(.+))?$",
-    )
-    .ok()?;
+    let re =
+        regex::Regex::new(r"^(https://github\.com/[^/]+/[^/]+?)(?:\.git)?/tree/([^/]+)(?:/(.+))?$")
+            .ok()?;
     let caps = re.captures(url)?;
     let clone_url = format!("{}.git", caps.get(1)?.as_str());
     let branch = caps.get(2)?.as_str().to_string();
@@ -343,7 +347,11 @@ fn parse_github_tree_url(url: &str) -> Option<(String, String, Option<String>)> 
     Some((clone_url, branch, subpath))
 }
 
-fn resolve_remote_revision_with_git(url: &str, branch: Option<&str>, proxy_url: Option<&str>) -> Result<String> {
+fn resolve_remote_revision_with_git(
+    url: &str,
+    branch: Option<&str>,
+    proxy_url: Option<&str>,
+) -> Result<String> {
     let target = branch
         .map(|branch| format!("refs/heads/{branch}"))
         .unwrap_or_else(|| "HEAD".to_string());
@@ -398,8 +406,7 @@ mod tests {
 
     #[test]
     fn parses_github_tree_url_branch_only() {
-        let parsed =
-            parse_git_source("https://github.com/acme/skills/tree/develop");
+        let parsed = parse_git_source("https://github.com/acme/skills/tree/develop");
         assert_eq!(parsed.clone_url, "https://github.com/acme/skills.git");
         assert_eq!(parsed.branch.as_deref(), Some("develop"));
         assert_eq!(parsed.subpath, None);
@@ -518,8 +525,7 @@ mod tests {
         let repo = tmp.path().join("repo");
         let skill = repo.join("tools").join("my-skill");
         assert_eq!(
-            relative_subpath(&repo, &skill)
-                .map(|s| s.replace('\\', "/")),
+            relative_subpath(&repo, &skill).map(|s| s.replace('\\', "/")),
             Some("tools/my-skill".to_string())
         );
     }
@@ -544,8 +550,7 @@ mod tests {
     #[test]
     fn parse_github_tree_url_with_dot_git_suffix() {
         // URL with .git before /tree should still parse
-        let parsed =
-            parse_git_source("https://github.com/acme/skills.git/tree/main/sub");
+        let parsed = parse_git_source("https://github.com/acme/skills.git/tree/main/sub");
         assert_eq!(parsed.clone_url, "https://github.com/acme/skills.git");
         assert_eq!(parsed.branch.as_deref(), Some("main"));
         assert_eq!(parsed.subpath.as_deref(), Some("sub"));
@@ -553,8 +558,7 @@ mod tests {
 
     #[test]
     fn parse_non_github_url_no_tree_extraction() {
-        let parsed =
-            parse_git_source("https://gitlab.com/acme/skills/tree/main/sub");
+        let parsed = parse_git_source("https://gitlab.com/acme/skills/tree/main/sub");
         // Non-github — regex won't match, returned as-is
         assert_eq!(
             parsed.clone_url,

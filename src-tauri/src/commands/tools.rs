@@ -1,6 +1,6 @@
+use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::Arc;
-use serde::Serialize;
 use tauri::State;
 
 use crate::core::error::AppError;
@@ -31,7 +31,9 @@ fn get_disabled_tools(store: &SkillStore) -> Vec<String> {
 fn set_disabled_tools(store: &SkillStore, disabled: &[String]) -> Result<(), AppError> {
     let json = serde_json::to_string(disabled)
         .map_err(|e| AppError::internal(format!("Failed to serialize: {e}")))?;
-    store.set_setting("disabled_tools", &json).map_err(AppError::db)
+    store
+        .set_setting("disabled_tools", &json)
+        .map_err(AppError::db)
 }
 
 /// Sync active scenario skills to a single tool.
@@ -80,7 +82,9 @@ fn unsync_all_for_tool(store: &SkillStore, tool_key: &str) {
 }
 
 #[tauri::command]
-pub async fn get_tool_status(store: State<'_, Arc<SkillStore>>) -> Result<Vec<ToolInfoDto>, AppError> {
+pub async fn get_tool_status(
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<Vec<ToolInfoDto>, AppError> {
     let store = store.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let adapters = tool_adapters::default_tool_adapters();

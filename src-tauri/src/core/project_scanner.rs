@@ -109,7 +109,11 @@ fn scan_recursive(dir: &Path, depth: usize, max_depth: usize, results: &mut Vec<
             }
             // Skip hidden directories and common non-project dirs
             let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-            if name.starts_with('.') || name == "node_modules" || name == "target" || name == "__pycache__" {
+            if name.starts_with('.')
+                || name == "node_modules"
+                || name == "target"
+                || name == "__pycache__"
+            {
                 continue;
             }
             scan_recursive(&path, depth + 1, max_depth, results);

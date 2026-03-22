@@ -53,7 +53,13 @@ fn parse_frontmatter(content: &str) -> SkillMeta {
 }
 
 /// Skill directory marker files used across the application.
-const SKILL_DIR_MARKERS: &[&str] = &["SKILL.md", "skill.md", "CLAUDE.md", "README.md", "readme.md"];
+const SKILL_DIR_MARKERS: &[&str] = &[
+    "SKILL.md",
+    "skill.md",
+    "CLAUDE.md",
+    "README.md",
+    "readme.md",
+];
 
 /// Check whether a directory looks like a valid skill directory
 /// (contains at least one recognised marker file).
@@ -66,9 +72,8 @@ const WINDOWS_RESERVED: &[char] = &['<', '>', ':', '"', '/', '\\', '|', '?', '*'
 
 /// Reserved Windows device names that cannot be used as file/directory names.
 const WINDOWS_RESERVED_BASENAMES: &[&str] = &[
-    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
-    "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8",
-    "LPT9",
+    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+    "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
 ];
 
 /// Sanitize a skill name so it is safe to use as a single directory component
@@ -226,11 +231,7 @@ mod tests {
     #[test]
     fn parse_skill_md_prefers_skill_md_over_claude_md() {
         let tmp = tempdir().unwrap();
-        fs::write(
-            tmp.path().join("SKILL.md"),
-            "---\nname: from-skill\n---\n",
-        )
-        .unwrap();
+        fs::write(tmp.path().join("SKILL.md"), "---\nname: from-skill\n---\n").unwrap();
         fs::write(
             tmp.path().join("CLAUDE.md"),
             "---\nname: from-claude\n---\n",
@@ -306,10 +307,7 @@ mod tests {
             sanitize_skill_name("my skill (v2)"),
             Some("my skill (v2)".into())
         );
-        assert_eq!(
-            sanitize_skill_name("技能-测试"),
-            Some("技能-测试".into())
-        );
+        assert_eq!(sanitize_skill_name("技能-测试"), Some("技能-测试".into()));
     }
 
     #[test]
@@ -323,10 +321,7 @@ mod tests {
     #[test]
     fn sanitize_replaces_control_chars_with_underscore() {
         // Replace rather than remove, so "a\x00b" → "a_b" not "ab"
-        assert_eq!(
-            sanitize_skill_name("a\x00b\x07c"),
-            Some("a_b_c".into())
-        );
+        assert_eq!(sanitize_skill_name("a\x00b\x07c"), Some("a_b_c".into()));
     }
 
     #[test]
@@ -335,10 +330,7 @@ mod tests {
             sanitize_skill_name("foo:bar*baz"),
             Some("foo_bar_baz".into())
         );
-        assert_eq!(
-            sanitize_skill_name("a<b>c"),
-            Some("a_b_c".into())
-        );
+        assert_eq!(sanitize_skill_name("a<b>c"), Some("a_b_c".into()));
     }
 
     #[test]

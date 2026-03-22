@@ -113,8 +113,7 @@ pub fn install_from_local_to_destination(
 
     let skill_name = match name {
         Some(n) if !n.is_empty() => {
-            sanitize_skill_name(n)
-                .ok_or_else(|| anyhow::anyhow!("Invalid skill name: '{}'", n))?
+            sanitize_skill_name(n).ok_or_else(|| anyhow::anyhow!("Invalid skill name: '{}'", n))?
         }
         _ => skill_metadata::infer_skill_name(skill_dir),
     };
@@ -127,8 +126,7 @@ pub fn resolve_local_skill_name(source: &Path, name: Option<&str>) -> Result<Str
 
     Ok(match name {
         Some(n) if !n.is_empty() => {
-            sanitize_skill_name(n)
-                .ok_or_else(|| anyhow::anyhow!("Invalid skill name: '{}'", n))?
+            sanitize_skill_name(n).ok_or_else(|| anyhow::anyhow!("Invalid skill name: '{}'", n))?
         }
         _ => skill_metadata::infer_skill_name(skill_dir),
     })
@@ -326,4 +324,3 @@ mod tests {
         assert_eq!(dest, tmp.path().join("legacy"));
     }
 }
-

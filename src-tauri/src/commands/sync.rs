@@ -5,8 +5,7 @@ use tauri::State;
 use crate::core::{
     error::AppError,
     skill_store::{SkillStore, SkillTargetRecord},
-    sync_engine,
-    tool_adapters,
+    sync_engine, tool_adapters,
 };
 
 #[tauri::command]
@@ -21,7 +20,10 @@ pub async fn sync_skill_to_tool(
             .ok_or_else(|| AppError::not_found(format!("Unknown tool: {}", tool)))?;
 
         if !adapter.is_installed() {
-            return Err(AppError::not_found(format!("{} is not installed", adapter.display_name)));
+            return Err(AppError::not_found(format!(
+                "{} is not installed",
+                adapter.display_name
+            )));
         }
 
         // Reject sync to disabled tools
@@ -32,7 +34,10 @@ pub async fn sync_skill_to_tool(
             .and_then(|v| serde_json::from_str(&v).ok())
             .unwrap_or_default();
         if disabled.contains(&tool) {
-            return Err(AppError::invalid_input(format!("{} is disabled", adapter.display_name)));
+            return Err(AppError::invalid_input(format!(
+                "{} is disabled",
+                adapter.display_name
+            )));
         }
 
         let skill = store
@@ -42,13 +47,10 @@ pub async fn sync_skill_to_tool(
 
         let source = PathBuf::from(&skill.central_path);
         let target = adapter.skills_dir().join(&skill.name);
-        let configured_mode = store
-            .get_setting("sync_mode")
-            .map_err(AppError::db)?;
+        let configured_mode = store.get_setting("sync_mode").map_err(AppError::db)?;
         let mode = sync_engine::sync_mode_for_tool(&tool, configured_mode.as_deref());
 
-        let actual_mode =
-            sync_engine::sync_skill(&source, &target, mode).map_err(AppError::io)?;
+        let actual_mode = sync_engine::sync_skill(&source, &target, mode).map_err(AppError::io)?;
 
         let now = chrono::Utc::now().timestamp_millis();
         let target_record = SkillTargetRecord {
@@ -62,9 +64,7 @@ pub async fn sync_skill_to_tool(
             last_error: None,
         };
 
-        store
-            .insert_target(&target_record)
-            .map_err(AppError::db)?;
+        store.insert_target(&target_record).map_err(AppError::db)?;
 
         Ok(())
     })

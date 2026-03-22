@@ -49,7 +49,10 @@ pub fn build_http_client(proxy_url: Option<&str>, timeout_secs: u64) -> reqwest:
     builder.build().unwrap_or_default()
 }
 
-pub fn fetch_leaderboard(board: LeaderboardType, proxy_url: Option<&str>) -> Result<Vec<SkillsShSkill>> {
+pub fn fetch_leaderboard(
+    board: LeaderboardType,
+    proxy_url: Option<&str>,
+) -> Result<Vec<SkillsShSkill>> {
     let client = build_http_client(proxy_url, 15);
 
     let html = client
@@ -137,10 +140,7 @@ fn parse_skills_array(arr: &[serde_json::Value]) -> Vec<SkillsShSkill> {
             .filter(|v| !v.is_empty())
             .unwrap_or(&skill_id)
             .to_string();
-        let installs = item
-            .get("installs")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(0);
+        let installs = item.get("installs").and_then(|v| v.as_u64()).unwrap_or(0);
 
         skills.push(SkillsShSkill {
             id,
@@ -214,7 +214,11 @@ fn parse_embedded_with_regex(html: &str, pattern: &Regex) -> Vec<SkillsShSkill> 
     skills
 }
 
-pub fn search_skills(query: &str, limit: usize, proxy_url: Option<&str>) -> Result<Vec<SkillsShSkill>> {
+pub fn search_skills(
+    query: &str,
+    limit: usize,
+    proxy_url: Option<&str>,
+) -> Result<Vec<SkillsShSkill>> {
     let client = build_http_client(proxy_url, 15);
 
     let url = format!(

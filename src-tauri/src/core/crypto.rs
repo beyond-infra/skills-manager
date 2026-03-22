@@ -30,7 +30,7 @@ pub fn load_or_create_key(path: &Path) -> Result<[u8; 32]> {
     let mut key = [0u8; 32];
     use rand::RngCore;
     rand::thread_rng().fill_bytes(&mut key);
-    std::fs::write(path, &key).context("Failed to write secret key file")?;
+    std::fs::write(path, key).context("Failed to write secret key file")?;
     set_owner_readonly(path);
     Ok(key)
 }

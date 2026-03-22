@@ -149,7 +149,9 @@ pub fn find_adapter(key: &str) -> Option<ToolAdapter> {
 }
 
 /// Returns adapters that are installed and not in the disabled list.
-pub fn enabled_installed_adapters(store: &crate::core::skill_store::SkillStore) -> Vec<ToolAdapter> {
+pub fn enabled_installed_adapters(
+    store: &crate::core::skill_store::SkillStore,
+) -> Vec<ToolAdapter> {
     let disabled: Vec<String> = store
         .get_setting("disabled_tools")
         .ok()

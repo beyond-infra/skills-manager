@@ -4,8 +4,8 @@ use std::sync::Arc;
 use serde::Serialize;
 use tauri::State;
 
-use crate::core::{error::AppError, installer, project_scanner, sync_engine};
 use crate::core::skill_store::{ProjectRecord, SkillRecord, SkillStore};
+use crate::core::{error::AppError, installer, project_scanner, sync_engine};
 
 #[derive(Serialize)]
 pub struct ProjectDto {
@@ -93,7 +93,11 @@ fn slugify_skill_dir_name(name: &str) -> String {
     }
 }
 
-fn source_ref_matches_skill_path(skill_path: &str, skill_canonical: Option<&PathBuf>, managed: &SkillRecord) -> bool {
+fn source_ref_matches_skill_path(
+    skill_path: &str,
+    skill_canonical: Option<&PathBuf>,
+    managed: &SkillRecord,
+) -> bool {
     let Some(source_ref) = managed.source_ref.as_deref() else {
         return false;
     };
@@ -150,7 +154,9 @@ fn classify_sync_status(
         return "project_only".to_string();
     };
 
-    if skill.content_hash.is_some() && managed.content_hash.as_deref() == skill.content_hash.as_deref() {
+    if skill.content_hash.is_some()
+        && managed.content_hash.as_deref() == skill.content_hash.as_deref()
+    {
         return "in_sync".to_string();
     }
 
@@ -180,13 +186,18 @@ pub async fn get_projects(store: State<'_, Arc<SkillStore>>) -> Result<Vec<Proje
 }
 
 #[tauri::command]
-pub async fn add_project(store: State<'_, Arc<SkillStore>>, path: String) -> Result<ProjectDto, AppError> {
+pub async fn add_project(
+    store: State<'_, Arc<SkillStore>>,
+    path: String,
+) -> Result<ProjectDto, AppError> {
     let store = store.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let project_path = Path::new(&path);
         let skills_dir = project_path.join(".claude").join("skills");
         if !skills_dir.is_dir() {
-            return Err(AppError::invalid_input("Directory does not contain .claude/skills/"));
+            return Err(AppError::invalid_input(
+                "Directory does not contain .claude/skills/",
+            ));
         }
 
         let name = project_path
@@ -213,10 +224,8 @@ pub async fn add_project(store: State<'_, Arc<SkillStore>>, path: String) -> Res
 #[tauri::command]
 pub async fn remove_project(store: State<'_, Arc<SkillStore>>, id: String) -> Result<(), AppError> {
     let store = store.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        store.delete_project(&id).map_err(AppError::db)
-    })
-    .await?
+    tauri::async_runtime::spawn_blocking(move || store.delete_project(&id).map_err(AppError::db))
+        .await?
 }
 
 #[tauri::command]
@@ -225,12 +234,8 @@ pub async fn reorder_projects(
     store: State<'_, Arc<SkillStore>>,
 ) -> Result<(), AppError> {
     let store = store.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        store
-            .reorder_projects(&ids)
-            .map_err(AppError::db)
-    })
-    .await?
+    tauri::async_runtime::spawn_blocking(move || store.reorder_projects(&ids).map_err(AppError::db))
+        .await?
 }
 
 #[tauri::command]
@@ -310,7 +315,9 @@ pub async fn get_project_skill_document(
             }
         }
 
-        Err(AppError::not_found("No document file found in skill directory"))
+        Err(AppError::not_found(
+            "No document file found in skill directory",
+        ))
     })
     .await?
 }
@@ -339,9 +346,12 @@ pub async fn import_project_skill_to_center(
         let source_path = PathBuf::from(&skill.path);
         let all_managed = store.get_all_skills().unwrap_or_default();
         if let Some(existing) = find_source_ref_match(skill, &all_managed) {
-            let result =
-                installer::install_from_local_to_destination(&source_path, Some(&existing.name), Path::new(&existing.central_path))
-                    .map_err(AppError::io)?;
+            let result = installer::install_from_local_to_destination(
+                &source_path,
+                Some(&existing.name),
+                Path::new(&existing.central_path),
+            )
+            .map_err(AppError::io)?;
             store
                 .update_skill_after_install(
                     &existing.id,
@@ -356,7 +366,8 @@ pub async fn import_project_skill_to_center(
             return Ok(());
         }
 
-        let result = installer::install_from_local(&source_path, Some(&skill.name)).map_err(AppError::io)?;
+        let result =
+            installer::install_from_local(&source_path, Some(&skill.name)).map_err(AppError::io)?;
 
         let active = store.get_active_scenario_id().ok().flatten();
         let now = chrono::Utc::now().timestamp_millis();
@@ -442,7 +453,10 @@ pub async fn export_skill_to_project(
         }
 
         if target_dir.exists() || disabled_root.join(&dir_name).exists() {
-            return Err(AppError::invalid_input(format!("Skill \"{}\" already exists in this project", skill.name)));
+            return Err(AppError::invalid_input(format!(
+                "Skill \"{}\" already exists in this project",
+                skill.name
+            )));
         }
 
         let source = PathBuf::from(&skill.central_path);
@@ -476,8 +490,8 @@ pub async fn update_project_skill_from_center(
             .ok_or_else(|| AppError::not_found("Skill not found in project"))?;
 
         let all_managed = store.get_all_skills().unwrap_or_default();
-        let managed =
-            find_best_center_match(skill, &all_managed).ok_or_else(|| AppError::not_found("No matching skill in center"))?;
+        let managed = find_best_center_match(skill, &all_managed)
+            .ok_or_else(|| AppError::not_found("No matching skill in center"))?;
 
         let claude_dir = Path::new(&record.path).join(".claude");
         let skills_root = claude_dir.join("skills");
@@ -492,7 +506,8 @@ pub async fn update_project_skill_from_center(
         }
 
         let source = PathBuf::from(&managed.central_path);
-        sync_engine::sync_skill(&source, &target_path, sync_engine::SyncMode::Copy).map_err(AppError::io)?;
+        sync_engine::sync_skill(&source, &target_path, sync_engine::SyncMode::Copy)
+            .map_err(AppError::io)?;
         Ok(())
     })
     .await?
@@ -523,11 +538,15 @@ pub async fn toggle_project_skill(
             let to = skills_dir.join(&skill_dir_name);
 
             if !from.is_dir() {
-                return Err(AppError::not_found("Skill directory not found in skills-disabled"));
+                return Err(AppError::not_found(
+                    "Skill directory not found in skills-disabled",
+                ));
             }
             ensure_dir_within_root(&from, &disabled_dir)?;
             if to.exists() {
-                return Err(AppError::invalid_input("Skill already exists in skills directory"));
+                return Err(AppError::invalid_input(
+                    "Skill already exists in skills directory",
+                ));
             }
             std::fs::rename(&from, &to)?;
         } else {
@@ -540,7 +559,9 @@ pub async fn toggle_project_skill(
             ensure_dir_within_root(&from, &skills_dir)?;
             std::fs::create_dir_all(&disabled_dir)?;
             if to.exists() {
-                return Err(AppError::invalid_input("Skill already exists in skills-disabled directory"));
+                return Err(AppError::invalid_input(
+                    "Skill already exists in skills-disabled directory",
+                ));
             }
             std::fs::rename(&from, &to)?;
         }

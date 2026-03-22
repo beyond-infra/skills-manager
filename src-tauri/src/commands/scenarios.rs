@@ -9,6 +9,24 @@ use crate::core::{
     sync_engine, tool_adapters,
 };
 
+fn refresh_tray_menu_best_effort(app: &tauri::AppHandle) {
+    if let Err(err) = crate::refresh_tray_menu(app) {
+        log::warn!("Failed to refresh tray menu after scenario mutation: {err}");
+    }
+}
+
+fn ensure_scenario_exists(store: &SkillStore, scenario_id: &str) -> Result<(), AppError> {
+    let exists = store
+        .get_all_scenarios()
+        .map_err(AppError::db)?
+        .iter()
+        .any(|s| s.id == scenario_id);
+    if !exists {
+        return Err(AppError::not_found("Scenario not found"));
+    }
+    Ok(())
+}
+
 #[derive(Debug, Serialize)]
 pub struct ScenarioDto {
     pub id: String,
@@ -22,15 +40,15 @@ pub struct ScenarioDto {
 }
 
 #[tauri::command]
-pub async fn get_scenarios(store: State<'_, Arc<SkillStore>>) -> Result<Vec<ScenarioDto>, AppError> {
+pub async fn get_scenarios(
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<Vec<ScenarioDto>, AppError> {
     let store = store.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let scenarios = store.get_all_scenarios().map_err(AppError::db)?;
         let mut result = Vec::new();
         for s in scenarios {
-            let count = store
-                .count_skills_for_scenario(&s.id)
-                .unwrap_or(0);
+            let count = store.count_skills_for_scenario(&s.id).unwrap_or(0);
             result.push(ScenarioDto {
                 id: s.id,
                 name: s.name,
@@ -48,12 +66,12 @@ pub async fn get_scenarios(store: State<'_, Arc<SkillStore>>) -> Result<Vec<Scen
 }
 
 #[tauri::command]
-pub async fn get_active_scenario(store: State<'_, Arc<SkillStore>>) -> Result<Option<ScenarioDto>, AppError> {
+pub async fn get_active_scenario(
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<Option<ScenarioDto>, AppError> {
     let store = store.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
-        let active_id = store
-            .get_active_scenario_id()
-            .map_err(AppError::db)?;
+        let active_id = store.get_active_scenario_id().map_err(AppError::db)?;
 
         if let Some(id) = active_id {
             let scenarios = store.get_all_scenarios().map_err(AppError::db)?;
@@ -78,13 +96,14 @@ pub async fn get_active_scenario(store: State<'_, Arc<SkillStore>>) -> Result<Op
 
 #[tauri::command]
 pub async fn create_scenario(
+    app: tauri::AppHandle,
     name: String,
     description: Option<String>,
     icon: Option<String>,
     store: State<'_, Arc<SkillStore>>,
 ) -> Result<ScenarioDto, AppError> {
     let store = store.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    let result = tauri::async_runtime::spawn_blocking(move || {
         let now = chrono::Utc::now().timestamp_millis();
         let id = uuid::Uuid::new_v4().to_string();
         let previous_active_id = store.get_active_scenario_id().map_err(AppError::db)?;
@@ -99,9 +118,7 @@ pub async fn create_scenario(
             updated_at: now,
         };
 
-        store
-            .insert_scenario(&record)
-            .map_err(AppError::db)?;
+        store.insert_scenario(&record).map_err(AppError::db)?;
 
         if let Some(previous_id) = previous_active_id.as_deref() {
             unsync_scenario_skills(&store, previous_id)?;
@@ -119,11 +136,16 @@ pub async fn create_scenario(
             updated_at: now,
         })
     })
-    .await?
+    .await?;
+    if result.is_ok() {
+        refresh_tray_menu_best_effort(&app);
+    }
+    result
 }
 
 #[tauri::command]
 pub async fn update_scenario(
+    app: tauri::AppHandle,
     id: String,
     name: String,
     description: Option<String>,
@@ -131,18 +153,26 @@ pub async fn update_scenario(
     store: State<'_, Arc<SkillStore>>,
 ) -> Result<(), AppError> {
     let store = store.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    let result = tauri::async_runtime::spawn_blocking(move || {
         store
             .update_scenario(&id, &name, description.as_deref(), icon.as_deref())
             .map_err(AppError::db)
     })
-    .await?
+    .await?;
+    if result.is_ok() {
+        refresh_tray_menu_best_effort(&app);
+    }
+    result
 }
 
 #[tauri::command]
-pub async fn delete_scenario(id: String, store: State<'_, Arc<SkillStore>>) -> Result<(), AppError> {
+pub async fn delete_scenario(
+    app: tauri::AppHandle,
+    id: String,
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<(), AppError> {
     let store = store.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    let result = tauri::async_runtime::spawn_blocking(move || {
         let was_active = store
             .get_active_scenario_id()
             .map_err(AppError::db)?
@@ -158,22 +188,30 @@ pub async fn delete_scenario(id: String, store: State<'_, Arc<SkillStore>>) -> R
         if was_active {
             let remaining = store.get_all_scenarios().map_err(AppError::db)?;
             if let Some(first) = remaining.first() {
-                store
-                    .set_active_scenario(&first.id)
-                    .map_err(AppError::db)?;
+                store.set_active_scenario(&first.id).map_err(AppError::db)?;
                 sync_scenario_skills(&store, &first.id)?;
             }
         }
 
         Ok(())
     })
-    .await?
+    .await?;
+    if result.is_ok() {
+        refresh_tray_menu_best_effort(&app);
+    }
+    result
 }
 
 #[tauri::command]
-pub async fn switch_scenario(id: String, store: State<'_, Arc<SkillStore>>) -> Result<(), AppError> {
+pub async fn switch_scenario(
+    app: tauri::AppHandle,
+    id: String,
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<(), AppError> {
     let store = store.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        ensure_scenario_exists(&store, &id)?;
+
         // Unsync old scenario skills
         if let Ok(Some(old_id)) = store.get_active_scenario_id() {
             if old_id != id {
@@ -182,26 +220,29 @@ pub async fn switch_scenario(id: String, store: State<'_, Arc<SkillStore>>) -> R
         }
 
         // Set new active
-        store
-            .set_active_scenario(&id)
-            .map_err(AppError::db)?;
+        store.set_active_scenario(&id).map_err(AppError::db)?;
 
         // Sync new scenario skills
         sync_scenario_skills(&store, &id)?;
 
         Ok(())
     })
-    .await?
+    .await?;
+    if result.is_ok() {
+        refresh_tray_menu_best_effort(&app);
+    }
+    result
 }
 
 #[tauri::command]
 pub async fn add_skill_to_scenario(
+    app: tauri::AppHandle,
     skill_id: String,
     scenario_id: String,
     store: State<'_, Arc<SkillStore>>,
 ) -> Result<(), AppError> {
     let store = store.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    let result = tauri::async_runtime::spawn_blocking(move || {
         store
             .add_skill_to_scenario(&scenario_id, &skill_id)
             .map_err(AppError::db)?;
@@ -216,7 +257,10 @@ pub async fn add_skill_to_scenario(
                     let source = PathBuf::from(&skill.central_path);
                     for adapter in &adapters {
                         let target = adapter.skills_dir().join(&skill.name);
-                        let mode = sync_engine::sync_mode_for_tool(&adapter.key, configured_mode.as_deref());
+                        let mode = sync_engine::sync_mode_for_tool(
+                            &adapter.key,
+                            configured_mode.as_deref(),
+                        );
                         if sync_engine::sync_skill(&source, &target, mode).is_ok() {
                             let now = chrono::Utc::now().timestamp_millis();
                             let target_record = crate::core::skill_store::SkillTargetRecord {
@@ -238,17 +282,22 @@ pub async fn add_skill_to_scenario(
 
         Ok(())
     })
-    .await?
+    .await?;
+    if result.is_ok() {
+        refresh_tray_menu_best_effort(&app);
+    }
+    result
 }
 
 #[tauri::command]
 pub async fn remove_skill_from_scenario(
+    app: tauri::AppHandle,
     skill_id: String,
     scenario_id: String,
     store: State<'_, Arc<SkillStore>>,
 ) -> Result<(), AppError> {
     let store = store.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
+    let result = tauri::async_runtime::spawn_blocking(move || {
         store
             .remove_skill_from_scenario(&scenario_id, &skill_id)
             .map_err(AppError::db)?;
@@ -257,14 +306,10 @@ pub async fn remove_skill_from_scenario(
         if let Ok(Some(active_id)) = store.get_active_scenario_id() {
             if active_id == scenario_id {
                 // Check if skill is in any other active scenario
-                let other_scenarios = store
-                    .get_scenarios_for_skill(&skill_id)
-                    .unwrap_or_default();
+                let other_scenarios = store.get_scenarios_for_skill(&skill_id).unwrap_or_default();
                 if !other_scenarios.contains(&active_id) {
                     // Unsync from all tools
-                    let targets = store
-                        .get_targets_for_skill(&skill_id)
-                        .unwrap_or_default();
+                    let targets = store.get_targets_for_skill(&skill_id).unwrap_or_default();
                     for target in &targets {
                         let path = PathBuf::from(&target.target_path);
                         sync_engine::remove_target(&path).ok();
@@ -279,21 +324,28 @@ pub async fn remove_skill_from_scenario(
 
         Ok(())
     })
-    .await?
+    .await?;
+    if result.is_ok() {
+        refresh_tray_menu_best_effort(&app);
+    }
+    result
 }
 
 #[tauri::command]
 pub async fn reorder_scenarios(
+    app: tauri::AppHandle,
     ids: Vec<String>,
     store: State<'_, Arc<SkillStore>>,
 ) -> Result<(), AppError> {
     let store = store.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        store
-            .reorder_scenarios(&ids)
-            .map_err(AppError::db)
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        store.reorder_scenarios(&ids).map_err(AppError::db)
     })
-    .await?
+    .await?;
+    if result.is_ok() {
+        refresh_tray_menu_best_effort(&app);
+    }
+    result
 }
 
 // ── Internal helpers ──
@@ -330,15 +382,16 @@ pub(crate) fn sync_scenario_skills(store: &SkillStore, scenario_id: &str) -> Res
     Ok(())
 }
 
-pub(crate) fn unsync_scenario_skills(store: &SkillStore, scenario_id: &str) -> Result<(), AppError> {
+pub(crate) fn unsync_scenario_skills(
+    store: &SkillStore,
+    scenario_id: &str,
+) -> Result<(), AppError> {
     let skill_ids = store
         .get_skill_ids_for_scenario(scenario_id)
         .map_err(AppError::db)?;
 
     for skill_id in &skill_ids {
-        let targets = store
-            .get_targets_for_skill(skill_id)
-            .unwrap_or_default();
+        let targets = store.get_targets_for_skill(skill_id).unwrap_or_default();
         for target in &targets {
             let path = PathBuf::from(&target.target_path);
             sync_engine::remove_target(&path).ok();

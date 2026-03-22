@@ -13,11 +13,14 @@ pub struct ScanResultDto {
 }
 
 #[tauri::command]
-pub async fn scan_local_skills(store: State<'_, Arc<SkillStore>>) -> Result<ScanResultDto, AppError> {
+pub async fn scan_local_skills(
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<ScanResultDto, AppError> {
     let store = store.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let all_targets = store.get_all_targets().map_err(AppError::db)?;
-        let managed_paths: Vec<String> = all_targets.iter().map(|t| t.target_path.clone()).collect();
+        let managed_paths: Vec<String> =
+            all_targets.iter().map(|t| t.target_path.clone()).collect();
         let managed_skills = store.get_all_skills().map_err(AppError::db)?;
 
         let mut plan = scanner::scan_local_skills(&managed_paths).map_err(AppError::io)?;
@@ -73,9 +76,12 @@ pub async fn import_existing_skill(
             return Ok(());
         }
 
-        let result =
-            installer::install_from_local_to_destination(&path, Some(&resolved_name), &central_path)
-                .map_err(AppError::io)?;
+        let result = installer::install_from_local_to_destination(
+            &path,
+            Some(&resolved_name),
+            &central_path,
+        )
+        .map_err(AppError::io)?;
 
         let now = chrono::Utc::now().timestamp_millis();
         let id = uuid::Uuid::new_v4().to_string();
@@ -142,9 +148,11 @@ pub async fn import_all_discovered(store: State<'_, Arc<SkillStore>>) -> Result<
                     continue;
                 }
 
-                if let Ok(result) =
-                    installer::install_from_local_to_destination(&path, Some(&group.name), &central_path)
-                {
+                if let Ok(result) = installer::install_from_local_to_destination(
+                    &path,
+                    Some(&group.name),
+                    &central_path,
+                ) {
                     let now = chrono::Utc::now().timestamp_millis();
                     let id = uuid::Uuid::new_v4().to_string();
                     let record = crate::core::skill_store::SkillRecord {

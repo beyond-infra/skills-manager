@@ -1,6 +1,6 @@
+use semver::Version;
 use std::process::Command;
 use std::sync::Arc;
-use semver::Version;
 use tauri::State;
 
 use crate::core::{central_repo, error::AppError, skill_store::SkillStore, skillssh_api};
@@ -14,12 +14,13 @@ pub struct AppUpdateInfo {
 }
 
 #[tauri::command]
-pub async fn get_settings(key: String, store: State<'_, Arc<SkillStore>>) -> Result<Option<String>, AppError> {
+pub async fn get_settings(
+    key: String,
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<Option<String>, AppError> {
     let store = store.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        store.get_setting(&key).map_err(AppError::db)
-    })
-    .await?
+    tauri::async_runtime::spawn_blocking(move || store.get_setting(&key).map_err(AppError::db))
+        .await?
 }
 
 #[tauri::command]
@@ -33,11 +34,18 @@ pub async fn set_settings(
     let key_for_store = key.clone();
     let value_for_store = value.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        store.set_setting(&key_for_store, &value_for_store).map_err(AppError::db)?;
+        store
+            .set_setting(&key_for_store, &value_for_store)
+            .map_err(AppError::db)?;
         if key_for_store == "show_tray_icon" {
-            let tray_enabled = matches!(value_for_store.trim().to_ascii_lowercase().as_str(), "true" | "1" | "yes" | "on");
+            let tray_enabled = matches!(
+                value_for_store.trim().to_ascii_lowercase().as_str(),
+                "true" | "1" | "yes" | "on"
+            );
             if !tray_enabled {
-                store.set_setting("close_action", "close").map_err(AppError::db)?;
+                store
+                    .set_setting("close_action", "close")
+                    .map_err(AppError::db)?;
             }
         }
         Ok::<(), AppError>(())
@@ -45,7 +53,10 @@ pub async fn set_settings(
     .await??;
 
     if key == "show_tray_icon" {
-        let enabled = matches!(value.trim().to_ascii_lowercase().as_str(), "true" | "1" | "yes" | "on");
+        let enabled = matches!(
+            value.trim().to_ascii_lowercase().as_str(),
+            "true" | "1" | "yes" | "on"
+        );
         crate::set_tray_icon_enabled(&app, enabled).map_err(AppError::io)?;
     }
     Ok(())
@@ -81,7 +92,9 @@ pub async fn open_central_repo_folder() -> Result<(), AppError> {
         // Windows explorer.exe returns exit code 1 even on success
         #[cfg(not(target_os = "windows"))]
         if !status.success() {
-            return Err(AppError::io(format!("File manager exited with status: {status}")));
+            return Err(AppError::io(format!(
+                "File manager exited with status: {status}"
+            )));
         }
 
         let _ = status;
@@ -91,7 +104,10 @@ pub async fn open_central_repo_folder() -> Result<(), AppError> {
 }
 
 #[tauri::command]
-pub async fn check_app_update(app: tauri::AppHandle, store: State<'_, Arc<SkillStore>>) -> Result<AppUpdateInfo, AppError> {
+pub async fn check_app_update(
+    app: tauri::AppHandle,
+    store: State<'_, Arc<SkillStore>>,
+) -> Result<AppUpdateInfo, AppError> {
     let current_version = app.config().version.clone().unwrap_or_default();
     let proxy_url = store.proxy_url();
     tauri::async_runtime::spawn_blocking(move || {
@@ -144,14 +160,10 @@ pub async fn hide_to_tray(
         let store = store.inner().clone();
         tauri::async_runtime::spawn_blocking(move || {
             let value = store.get_setting("show_tray_icon").map_err(AppError::db)?;
-            Ok::<bool, AppError>(match value
-                .as_deref()
-                .map(str::trim)
-                .map(str::to_ascii_lowercase)
-            {
-                Some(v) if matches!(v.as_str(), "false" | "0" | "no" | "off") => false,
-                _ => true,
-            })
+            Ok::<bool, AppError>(!matches!(
+                value.as_deref().map(str::trim).map(str::to_ascii_lowercase),
+                Some(v) if matches!(v.as_str(), "false" | "0" | "no" | "off")
+            ))
         })
         .await??
     };
@@ -169,7 +181,9 @@ pub async fn hide_to_tray(
         app.set_dock_visibility(false)
             .map_err(|e| AppError::io(format!("Failed to hide Dock icon on macOS: {e}")))?;
         app.set_activation_policy(tauri::ActivationPolicy::Accessory)
-            .map_err(|e| AppError::io(format!("Failed to set activation policy to Accessory: {e}")))?;
+            .map_err(|e| {
+                AppError::io(format!("Failed to set activation policy to Accessory: {e}"))
+            })?;
     }
     #[cfg(not(target_os = "macos"))]
     let _ = app;

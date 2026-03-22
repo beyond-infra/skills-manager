@@ -7,6 +7,7 @@ mod core;
 
 /// Shared flag: when true, CloseRequested should NOT be prevented.
 pub static QUITTING: AtomicBool = AtomicBool::new(false);
+static TRAY_SCENARIO_SWITCH_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 const MAIN_TRAY_ID: &str = "main-tray";
 const TRAY_SCENARIO_ITEM_PREFIX: &str = "tray-scenario:";
 const CUSTOM_TRAY_ICON_BYTES: &[u8] = include_bytes!("../icons/tray/tray-icon-32.png");
@@ -132,12 +133,10 @@ fn build_tray_menu<R: tauri::Runtime>(
     } else {
         for scenario in scenarios {
             let checked = active_id.as_deref() == Some(scenario.id.as_str());
-            let skill_count = store.count_skills_for_scenario(&scenario.id).unwrap_or(0);
-            let label = format!("{} ({skill_count})", scenario.name);
             let scenario_item = CheckMenuItem::with_id(
                 app,
                 tray_scenario_item_id(&scenario.id),
-                label,
+                scenario.name,
                 true,
                 checked,
                 None::<&str>,
@@ -158,7 +157,9 @@ fn build_tray_menu<R: tauri::Runtime>(
     Ok(menu)
 }
 
-fn refresh_tray_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Result<(), String> {
+pub(crate) fn refresh_tray_menu<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+) -> Result<(), String> {
     let Some(tray) = app.tray_by_id(MAIN_TRAY_ID) else {
         return Ok(());
     };
@@ -170,32 +171,63 @@ fn refresh_tray_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Result<(),
     tray.set_menu(Some(menu)).map_err(|e| e.to_string())
 }
 
-fn switch_scenario_from_tray<R: tauri::Runtime>(
-    app: &tauri::AppHandle<R>,
-    scenario_id: &str,
-) -> Result<(), String> {
+fn switch_scenario_from_tray<R: tauri::Runtime>(app: &tauri::AppHandle<R>, scenario_id: &str) {
     let store = app
         .state::<Arc<core::skill_store::SkillStore>>()
         .inner()
         .clone();
+    let app = app.clone();
+    let scenario_id = scenario_id.to_string();
 
-    let current_active = store.get_active_scenario_id().map_err(|e| e.to_string())?;
-    if current_active.as_deref() == Some(scenario_id) {
-        return Ok(());
-    }
+    tauri::async_runtime::spawn(async move {
+        let store_for_task = store.clone();
+        let scenario_id_for_task = scenario_id.clone();
+        let result = tauri::async_runtime::spawn_blocking(move || {
+            let _switch_guard = TRAY_SCENARIO_SWITCH_LOCK
+                .lock()
+                .map_err(|_| "Tray scenario switch lock poisoned".to_string())?;
+            let scenario_exists = store_for_task
+                .get_all_scenarios()
+                .map_err(|e| e.to_string())?
+                .iter()
+                .any(|scenario| scenario.id == scenario_id_for_task);
+            if !scenario_exists {
+                return Err("Scenario not found".to_string());
+            }
+            let current_active = store_for_task
+                .get_active_scenario_id()
+                .map_err(|e| e.to_string())?;
+            if current_active.as_deref() == Some(&scenario_id_for_task) {
+                return Ok(false);
+            }
+            if let Some(old_id) = current_active.as_deref() {
+                commands::scenarios::unsync_scenario_skills(&store_for_task, old_id)
+                    .map_err(|e| e.to_string())?;
+            }
+            store_for_task
+                .set_active_scenario(&scenario_id_for_task)
+                .map_err(|e| e.to_string())?;
+            commands::scenarios::sync_scenario_skills(&store_for_task, &scenario_id_for_task)
+                .map_err(|e| e.to_string())?;
+            Ok::<bool, String>(true)
+        })
+        .await;
 
-    if let Some(old_id) = current_active.as_deref() {
-        commands::scenarios::unsync_scenario_skills(&store, old_id).map_err(|e| e.to_string())?;
-    }
-
-    store
-        .set_active_scenario(scenario_id)
-        .map_err(|e| e.to_string())?;
-    commands::scenarios::sync_scenario_skills(&store, scenario_id).map_err(|e| e.to_string())?;
-
-    refresh_tray_menu(app)?;
-    app.emit("tray-scenario-switched", scenario_id.to_string())
-        .map_err(|e| e.to_string())
+        match result {
+            Ok(Ok(changed)) => {
+                if changed {
+                    if let Err(err) = refresh_tray_menu(&app) {
+                        log::warn!("Failed to refresh tray menu after tray scenario switch: {err}");
+                    }
+                    if let Err(err) = app.emit("tray-scenario-switched", scenario_id) {
+                        log::warn!("Failed to emit tray-scenario-switched: {err}");
+                    }
+                }
+            }
+            Ok(Err(err)) => log::error!("Failed to switch scenario from tray: {err}"),
+            Err(err) => log::error!("Scenario switch task panicked: {err}"),
+        }
+    });
 }
 
 fn ensure_tray_icon(app: &tauri::AppHandle) -> tauri::Result<()> {
@@ -226,9 +258,7 @@ fn ensure_tray_icon(app: &tauri::AppHandle) -> tauri::Result<()> {
             id => {
                 if let Some(scenario_id) = scenario_id_from_tray_item(id) {
                     log::info!("Tray menu clicked: switch scenario to {scenario_id}");
-                    if let Err(err) = switch_scenario_from_tray(app, scenario_id) {
-                        log::error!("Failed to switch scenario from tray: {err}");
-                    }
+                    switch_scenario_from_tray(app, scenario_id);
                 }
             }
         });

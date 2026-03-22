@@ -11,22 +11,16 @@ pub async fn git_backup_status(
 ) -> Result<git_backup::GitBackupStatus, AppError> {
     let _ = store; // ensure DB is available
     let skills_dir = central_repo::skills_dir();
-    tokio::task::spawn_blocking(move || {
-        git_backup::get_status(&skills_dir).map_err(AppError::git)
-    })
-    .await?
+    tokio::task::spawn_blocking(move || git_backup::get_status(&skills_dir).map_err(AppError::git))
+        .await?
 }
 
 #[tauri::command]
-pub async fn git_backup_init(
-    store: State<'_, Arc<SkillStore>>,
-) -> Result<(), AppError> {
+pub async fn git_backup_init(store: State<'_, Arc<SkillStore>>) -> Result<(), AppError> {
     let _ = store;
     let skills_dir = central_repo::skills_dir();
-    tokio::task::spawn_blocking(move || {
-        git_backup::init_repo(&skills_dir).map_err(AppError::git)
-    })
-    .await?
+    tokio::task::spawn_blocking(move || git_backup::init_repo(&skills_dir).map_err(AppError::git))
+        .await?
 }
 
 #[tauri::command]
@@ -57,21 +51,15 @@ pub async fn git_backup_commit(
 }
 
 #[tauri::command]
-pub async fn git_backup_push(
-    store: State<'_, Arc<SkillStore>>,
-) -> Result<(), AppError> {
+pub async fn git_backup_push(store: State<'_, Arc<SkillStore>>) -> Result<(), AppError> {
     let _ = store;
     let skills_dir = central_repo::skills_dir();
-    tokio::task::spawn_blocking(move || {
-        git_backup::push(&skills_dir).map_err(AppError::git)
-    })
-    .await?
+    tokio::task::spawn_blocking(move || git_backup::push(&skills_dir).map_err(AppError::git))
+        .await?
 }
 
 #[tauri::command]
-pub async fn git_backup_pull(
-    store: State<'_, Arc<SkillStore>>,
-) -> Result<(), AppError> {
+pub async fn git_backup_pull(store: State<'_, Arc<SkillStore>>) -> Result<(), AppError> {
     let store = store.inner().clone();
     let skills_dir = central_repo::skills_dir();
     tokio::task::spawn_blocking(move || {

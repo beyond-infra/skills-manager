@@ -14,7 +14,6 @@ impl SyncMode {
             SyncMode::Copy => "copy",
         }
     }
-
 }
 
 pub fn sync_mode_for_tool(tool_key: &str, configured_mode: Option<&str>) -> SyncMode {
@@ -41,8 +40,9 @@ pub fn sync_skill(source: &Path, target: &Path, mode: SyncMode) -> Result<SyncMo
         SyncMode::Symlink => {
             #[cfg(unix)]
             {
-                std::os::unix::fs::symlink(source, target)
-                    .with_context(|| format!("Failed to create symlink {:?} -> {:?}", target, source))?;
+                std::os::unix::fs::symlink(source, target).with_context(|| {
+                    format!("Failed to create symlink {:?} -> {:?}", target, source)
+                })?;
                 Ok(SyncMode::Symlink)
             }
             #[cfg(not(unix))]
@@ -106,10 +106,7 @@ mod tests {
 
     #[test]
     fn sync_mode_cursor_defaults_to_copy() {
-        assert!(matches!(
-            sync_mode_for_tool("cursor", None),
-            SyncMode::Copy
-        ));
+        assert!(matches!(sync_mode_for_tool("cursor", None), SyncMode::Copy));
     }
 
     #[test]

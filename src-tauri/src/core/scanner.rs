@@ -103,12 +103,14 @@ pub fn group_discovered(records: &[DiscoveredSkillRecord]) -> Vec<DiscoveredGrou
 
     for rec in records {
         let name = rec.name_guess.clone().unwrap_or_else(|| "unknown".into());
-        let entry = groups.entry(name.clone()).or_insert_with(|| DiscoveredGroup {
-            name,
-            fingerprint: rec.fingerprint.clone(),
-            locations: Vec::new(),
-            imported: false,
-        });
+        let entry = groups
+            .entry(name.clone())
+            .or_insert_with(|| DiscoveredGroup {
+                name,
+                fingerprint: rec.fingerprint.clone(),
+                locations: Vec::new(),
+                imported: false,
+            });
 
         if rec.imported_skill_id.is_some() {
             entry.imported = true;

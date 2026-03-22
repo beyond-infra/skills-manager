@@ -445,9 +445,8 @@ impl SkillStore {
     pub fn get_cache(&self, key: &str, ttl_secs: i64) -> Result<Option<String>> {
         let conn = self.conn.lock().unwrap();
         let now = chrono::Utc::now().timestamp();
-        let mut stmt = conn.prepare(
-            "SELECT data FROM skillssh_cache WHERE cache_key = ?1 AND fetched_at > ?2",
-        )?;
+        let mut stmt = conn
+            .prepare("SELECT data FROM skillssh_cache WHERE cache_key = ?1 AND fetched_at > ?2")?;
         let cutoff = now - ttl_secs;
         let mut rows = stmt.query_map(params![key, cutoff], |row| row.get::<_, String>(0))?;
         Ok(rows.next().and_then(|r| r.ok()))
@@ -466,7 +465,10 @@ impl SkillStore {
     // ── Settings ──
 
     pub fn proxy_url(&self) -> Option<String> {
-        self.get_setting("proxy_url").ok().flatten().filter(|s| !s.is_empty())
+        self.get_setting("proxy_url")
+            .ok()
+            .flatten()
+            .filter(|s| !s.is_empty())
     }
 
     pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
@@ -627,9 +629,8 @@ impl SkillStore {
 
     pub fn get_skill_ids_for_scenario(&self, scenario_id: &str) -> Result<Vec<String>> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT skill_id FROM scenario_skills WHERE scenario_id = ?1",
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT skill_id FROM scenario_skills WHERE scenario_id = ?1")?;
         let rows = stmt.query_map(params![scenario_id], |row| row.get::<_, String>(0))?;
         Ok(rows.filter_map(|r| r.ok()).collect())
     }
@@ -661,9 +662,8 @@ impl SkillStore {
 
     pub fn get_scenarios_for_skill(&self, skill_id: &str) -> Result<Vec<String>> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT scenario_id FROM scenario_skills WHERE skill_id = ?1",
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT scenario_id FROM scenario_skills WHERE skill_id = ?1")?;
         let rows = stmt.query_map(params![skill_id], |row| row.get::<_, String>(0))?;
         Ok(rows.filter_map(|r| r.ok()).collect())
     }
@@ -672,9 +672,8 @@ impl SkillStore {
 
     pub fn get_active_scenario_id(&self) -> Result<Option<String>> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT scenario_id FROM active_scenario WHERE key = 'current'",
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT scenario_id FROM active_scenario WHERE key = 'current'")?;
         let mut rows = stmt.query_map([], |row| row.get::<_, Option<String>>(0))?;
         Ok(rows.next().and_then(|r| r.ok()).flatten())
     }
@@ -760,7 +759,10 @@ impl SkillStore {
 
     pub fn set_tags_for_skill(&self, skill_id: &str, tags: &[String]) -> Result<()> {
         let conn = self.conn.lock().unwrap();
-        conn.execute("DELETE FROM skill_tags WHERE skill_id = ?1", params![skill_id])?;
+        conn.execute(
+            "DELETE FROM skill_tags WHERE skill_id = ?1",
+            params![skill_id],
+        )?;
         for tag in tags {
             let trimmed = tag.trim();
             if !trimmed.is_empty() {
@@ -779,7 +781,8 @@ impl SkillStore {
         let rows = stmt.query_map([], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
         })?;
-        let mut map: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+        let mut map: std::collections::HashMap<String, Vec<String>> =
+            std::collections::HashMap::new();
         for row in rows.filter_map(|r| r.ok()) {
             map.entry(row.0).or_default().push(row.1);
         }

@@ -48,7 +48,8 @@ pub async fn search_skillssh(
     let requested = limit.unwrap_or(60);
     let bounded = requested.clamp(1, 300);
     tauri::async_runtime::spawn_blocking(move || {
-        skillssh_api::search_skills(&query, bounded, proxy_url.as_deref()).map_err(AppError::network)
+        skillssh_api::search_skills(&query, bounded, proxy_url.as_deref())
+            .map_err(AppError::network)
     })
     .await?
 }
