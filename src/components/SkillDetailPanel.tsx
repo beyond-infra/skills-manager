@@ -59,6 +59,11 @@ export function SkillDetailPanel({
 
   if (!skill) return null;
   const activeDoc = doc?.skill_id === skill.id ? doc : null;
+  const availableToggleCount =
+    toolToggles?.filter((item) => item.installed && item.globally_enabled).length ?? 0;
+  const syncedAvailableCount =
+    toolToggles?.filter((item) => item.installed && item.globally_enabled && item.enabled).length ?? 0;
+  const unavailableToggleCount = (toolToggles?.length ?? 0) - availableToggleCount;
 
   return createPortal(
     <div className="fixed inset-y-0 right-0 left-[220px] z-50 flex">
@@ -93,11 +98,16 @@ export function SkillDetailPanel({
               <span className="font-medium text-secondary">{t("mySkills.agentTogglesTitle")}</span>
               <span className="rounded-full border border-border-subtle bg-surface px-2 py-0.5 text-[12px] text-muted">
                 {t("mySkills.syncSummary", {
-                  synced: toolToggles.filter((item) => item.enabled).length,
-                  total: toolToggles.length,
+                  synced: syncedAvailableCount,
+                  total: availableToggleCount,
                 })}
               </span>
             </div>
+            {unavailableToggleCount > 0 && (
+              <div className="mb-2 text-[12px] text-muted">
+                {t("mySkills.agentUnavailableCount", { count: unavailableToggleCount })}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
               {toolToggles.map((toggle) => {
                 const disabledReason = !toggle.installed

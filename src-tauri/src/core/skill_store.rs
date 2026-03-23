@@ -674,7 +674,7 @@ impl SkillStore {
         let mut stmt =
             conn.prepare("SELECT scenario_id FROM scenario_skills WHERE skill_id = ?1")?;
         let rows = stmt.query_map(params![skill_id], |row| row.get::<_, String>(0))?;
-        Ok(rows.filter_map(|r| r.ok()).collect())
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
     pub fn ensure_scenario_skill_tool_defaults(
@@ -688,10 +688,31 @@ impl SkillStore {
         }
 
         let conn = self.conn.lock().unwrap();
+        let mut existing_stmt = conn.prepare(
+            "SELECT tool
+             FROM scenario_skill_tools
+             WHERE scenario_id = ?1 AND skill_id = ?2",
+        )?;
+        let existing_rows = existing_stmt.query_map(params![scenario_id, skill_id], |row| {
+            row.get::<_, String>(0)
+        })?;
+        let existing_tools: std::collections::HashSet<String> = existing_rows
+            .collect::<rusqlite::Result<Vec<_>>>()?
+            .into_iter()
+            .collect();
+
+        let missing_tools: Vec<&String> = tools
+            .iter()
+            .filter(|tool| !existing_tools.contains(*tool))
+            .collect();
+        if missing_tools.is_empty() {
+            return Ok(());
+        }
+
         let tx = conn.unchecked_transaction()?;
         let now = chrono::Utc::now().timestamp_millis();
 
-        for tool in tools {
+        for tool in missing_tools {
             tx.execute(
                 "INSERT OR IGNORE INTO scenario_skill_tools (scenario_id, skill_id, tool, enabled, updated_at)
                  VALUES (?1, ?2, ?3, 1, ?4)",
@@ -743,7 +764,7 @@ impl SkillStore {
                 updated_at: row.get(4)?,
             })
         })?;
-        Ok(rows.filter_map(|r| r.ok()).collect())
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
     pub fn get_enabled_tools_for_scenario_skill(
@@ -760,7 +781,7 @@ impl SkillStore {
         let rows = stmt.query_map(params![scenario_id, skill_id], |row| {
             row.get::<_, String>(0)
         })?;
-        Ok(rows.filter_map(|r| r.ok()).collect())
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
     // ── Active Scenario ──

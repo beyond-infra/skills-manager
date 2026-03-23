@@ -119,6 +119,7 @@
     "agentToggleDisabled": "{{agent}} disabled",
     "agentToggleNotInstalled": "Not installed",
     "agentToggleDisabledGlobally": "Disabled in Settings",
+    "agentUnavailableCount": "{{count}} unavailable",
     "updateStatus": {
       "unknown": "Unknown",
       "checking": "Checking",

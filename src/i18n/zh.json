@@ -119,6 +119,7 @@
     "agentToggleDisabled": "{{agent}} 已关闭",
     "agentToggleNotInstalled": "未安装",
     "agentToggleDisabledGlobally": "已在设置中禁用",
+    "agentUnavailableCount": "{{count}} 个不可用",
     "updateStatus": {
       "unknown": "未知",
       "checking": "检查中",

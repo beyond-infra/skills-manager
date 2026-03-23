@@ -311,8 +311,10 @@ export function MySkills() {
           ? t("mySkills.agentToggleEnabled", { agent: displayName })
           : t("mySkills.agentToggleDisabled", { agent: displayName })
       );
-      await refreshManagedSkills();
-      const toggles = await api.getSkillToolToggles(selectedSkill.id, activeScenario.id);
+      const [, toggles] = await Promise.all([
+        refreshManagedSkills(),
+        api.getSkillToolToggles(selectedSkill.id, activeScenario.id),
+      ]);
       setToolToggles(toggles);
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, t("common.error")));

@@ -191,8 +191,14 @@ pub async fn get_skill_tool_toggles(
             .into_iter()
             .map(|adapter| {
                 let globally_enabled = !disabled.contains(&adapter.key);
+                let available = adapter.is_installed() && globally_enabled;
                 SkillToolToggleDto {
-                    enabled: enabled_map.get(&adapter.key).copied().unwrap_or(false),
+                    // Unavailable tools are always presented as disabled in UI.
+                    enabled: if available {
+                        enabled_map.get(&adapter.key).copied().unwrap_or(false)
+                    } else {
+                        false
+                    },
                     tool: adapter.key.clone(),
                     display_name: adapter.display_name.clone(),
                     installed: adapter.is_installed(),
@@ -266,6 +272,7 @@ pub async fn set_skill_tool_toggle(
                     .get_targets_for_skill(&skill_id)
                     .map_err(AppError::db)?;
                 if let Some(target) = targets.iter().find(|target| target.tool == tool) {
+                    // Safe because the app currently guarantees a single active scenario.
                     sync_engine::remove_target(&PathBuf::from(&target.target_path)).ok();
                 }
                 store
