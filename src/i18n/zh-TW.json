@@ -229,6 +229,7 @@
     "aiSearchNoKey": "請在設定中配置 SkillsMP API Key 以啟用 AI 搜尋",
     "aiSearchButton": "AI 搜尋",
     "aiSearchToggle": "AI 搜尋（SkillsMP）",
+    "onlyThisContributor": "僅看該貢獻者",
     "gitReinstall": "重新安裝並更新",
     "installClone": "安裝並複製",
     "scan": {

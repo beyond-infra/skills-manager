@@ -249,6 +249,7 @@
     "aiSearchNoKey": "请在设置中配置 SkillsMP API Key 以启用 AI 搜索",
     "aiSearchButton": "AI 搜索",
     "aiSearchToggle": "AI 搜索（SkillsMP）",
+    "onlyThisContributor": "仅看该贡献者",
     "installClone": "克隆并预览",
     "gitPreview": {
       "title": "选择要导入的技能",

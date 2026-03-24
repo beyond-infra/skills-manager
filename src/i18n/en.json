@@ -249,6 +249,7 @@
     "aiSearchNoKey": "Set your SkillsMP API key in Settings to enable AI search",
     "aiSearchButton": "AI Search",
     "aiSearchToggle": "AI-powered search (SkillsMP)",
+    "onlyThisContributor": "Only this contributor",
     "installClone": "Clone & Preview",
     "gitPreview": {
       "title": "Select Skills to Import",

@@ -1070,9 +1070,20 @@ export function InstallSkills() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-1">
-                          <span className="rounded-[5px] bg-accent-bg px-1.5 py-0.5 text-[13px] leading-4 font-medium text-accent-light">
+                          <button
+                            type="button"
+                            onClick={() => setMarketSourceFilter(skill.source)}
+                            disabled={marketSourceFilter === skill.source}
+                            title={t("install.onlyThisContributor")}
+                            className={cn(
+                              "rounded-[5px] bg-accent-bg px-1.5 py-0.5 text-[13px] leading-4 font-medium text-accent-light transition-colors",
+                              marketSourceFilter === skill.source
+                                ? "cursor-default opacity-90"
+                                : "hover:bg-accent-bg/80"
+                            )}
+                          >
                             @{skill.source}
-                          </span>
+                          </button>
                           {marketTab === "alltime" && skill.installs > 0 && (
                             <span className="inline-flex items-center gap-1 rounded-[5px] border border-border-subtle bg-background px-1.5 py-0.5 text-[13px] leading-4 text-muted">
                               <DownloadCloud className="h-3 w-3" />
