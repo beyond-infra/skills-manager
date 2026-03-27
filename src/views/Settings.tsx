@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Folder,
+  FolderOpen,
   RefreshCw,
   CheckCircle2,
   Circle,
@@ -18,11 +19,18 @@ import {
   Download,
   Type,
   Key,
+  Pencil,
+  RotateCcw,
+  Plus,
+  Trash2,
+  X,
+  Check,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { check } from "@tauri-apps/plugin-updater";
+import { check as checkUpdater } from "@tauri-apps/plugin-updater";
+import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { cn } from "../utils";
 import { useApp } from "../context/AppContext";
 import { useThemeContext } from "../context/ThemeContext";
@@ -65,7 +73,84 @@ export function Settings() {
   const [textSize, setTextSize] = useState("default");
   const [skillsmpApiKey, setSkillsmpApiKey] = useState("");
   const [skillsmpSaving, setSkillsmpSaving] = useState(false);
+  // Agent path editing
+  const [editingPathKey, setEditingPathKey] = useState<string | null>(null);
+  const [editingPathValue, setEditingPathValue] = useState("");
+  // Custom agent dialog
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customKey, setCustomKey] = useState("");
+  const [customPath, setCustomPath] = useState("");
+  const [addingCustom, setAddingCustom] = useState(false);
+
   const GITHUB_URL = "https://github.com/xingkongliang/skills-manager";
+
+  const startEditPath = useCallback((key: string, currentPath: string) => {
+    setEditingPathKey(key);
+    setEditingPathValue(currentPath);
+  }, []);
+
+  const handleSavePath = async () => {
+    if (!editingPathKey || !editingPathValue.trim()) return;
+    try {
+      await api.setCustomToolPath(editingPathKey, editingPathValue.trim());
+      await refreshTools();
+      toast.success(t("settings.pathSaved"));
+    } catch (e) {
+      toast.error(String(e));
+    } finally {
+      setEditingPathKey(null);
+    }
+  };
+
+  const handleResetPath = async (key: string) => {
+    try {
+      await api.resetCustomToolPath(key);
+      await refreshTools();
+      toast.success(t("settings.pathReset"));
+    } catch {
+      toast.error(t("common.error"));
+    }
+  };
+
+  const handleBrowsePath = async (setter: (v: string) => void) => {
+    const selected = await dialogOpen({ directory: true, multiple: false });
+    if (selected && typeof selected === "string") {
+      setter(selected);
+    }
+  };
+
+  const handleAddCustomAgent = async () => {
+    const trimKey = customKey.trim();
+    const trimName = customName.trim();
+    const trimPath = customPath.trim();
+    if (!trimKey || !trimName || !trimPath) return;
+    setAddingCustom(true);
+    try {
+      await api.addCustomTool(trimKey, trimName, trimPath);
+      await refreshTools();
+      toast.success(t("settings.customAgentAdded"));
+      setShowAddCustom(false);
+      setCustomName("");
+      setCustomKey("");
+      setCustomPath("");
+    } catch (e) {
+      toast.error(String(e));
+    } finally {
+      setAddingCustom(false);
+    }
+  };
+
+  const handleRemoveCustomAgent = async (key: string, name: string) => {
+    if (!confirm(t("settings.removeCustomAgentConfirm", { name }))) return;
+    try {
+      await api.removeCustomTool(key);
+      await refreshTools();
+      toast.success(t("settings.customAgentRemoved"));
+    } catch {
+      toast.error(t("common.error"));
+    }
+  };
 
   useEffect(() => {
     api.getSettings("sync_mode").then((v) => { if (v) setSyncMode(v); });
@@ -212,7 +297,7 @@ export function Settings() {
   const handleAutoUpdate = async () => {
     setInstalling(true);
     try {
-      const update = await check();
+      const update = await checkUpdater();
       if (update) {
         toast.info(t("settings.installing"));
         await update.downloadAndInstall();
@@ -305,6 +390,13 @@ export function Settings() {
             </h2>
             <div className="flex items-center gap-3">
               <button
+                onClick={() => setShowAddCustom(true)}
+                className="flex items-center gap-1 text-[13px] text-accent hover:text-accent-light transition-colors font-medium outline-none"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                {t("settings.addCustomAgent")}
+              </button>
+              <button
                 onClick={() => handleToggleAllTools(true)}
                 className="text-[13px] text-accent hover:text-accent-light transition-colors font-medium outline-none"
               >
@@ -330,43 +422,174 @@ export function Settings() {
               </button>
             </div>
           </div>
+
+          {/* Add custom agent form */}
+          {showAddCustom && (
+            <div className="app-panel p-4 mb-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[13px] font-medium text-secondary">{t("settings.addCustomAgent")}</h3>
+                <button onClick={() => setShowAddCustom(false)} className="text-muted hover:text-secondary outline-none">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[12px] text-muted mb-1 block">{t("settings.agentName")}</label>
+                  <input
+                    type="text"
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    placeholder={t("settings.agentNamePlaceholder")}
+                    className={`${fieldClass} w-full`}
+                  />
+                </div>
+                <div>
+                  <label className="text-[12px] text-muted mb-1 block">{t("settings.agentKey")}</label>
+                  <input
+                    type="text"
+                    value={customKey}
+                    onChange={(e) => setCustomKey(e.target.value.replace(/[^a-z0-9_]/g, ""))}
+                    placeholder={t("settings.agentKeyPlaceholder")}
+                    className={`${fieldClass} w-full font-mono`}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[12px] text-muted mb-1 block">{t("settings.skillsPath")}</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={customPath}
+                    onChange={(e) => setCustomPath(e.target.value)}
+                    placeholder={t("settings.skillsPathPlaceholder")}
+                    className={`${fieldClass} flex-1 font-mono`}
+                  />
+                  <button
+                    onClick={() => handleBrowsePath(setCustomPath)}
+                    className={`${actionButtonClass} bg-surface-hover hover:bg-surface-active text-tertiary border-border`}
+                  >
+                    <FolderOpen className="w-3 h-3" />
+                    {t("settings.selectFolder")}
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={handleAddCustomAgent}
+                  disabled={addingCustom || !customName.trim() || !customKey.trim() || !customPath.trim()}
+                  className={`${actionButtonClass} bg-accent text-white border-accent hover:opacity-90 disabled:opacity-50`}
+                >
+                  {addingCustom ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                  {t("common.create")}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
             {tools.map((agent, i) => (
               <div
                 key={i}
                 className={cn(
-                  "flex items-center gap-2 p-2.5 rounded-[4px] border transition-colors",
+                  "group relative flex flex-col gap-1 p-2.5 rounded-[4px] border transition-colors",
                   agent.installed && agent.enabled
                     ? "bg-surface border-border-subtle hover:border-border"
                     : "bg-bg-secondary border-border-subtle opacity-50"
                 )}
               >
-                {agent.installed ? (
-                  <button
-                    onClick={() => handleToggleTool(agent.key, !agent.enabled)}
-                    disabled={togglingTools.has(agent.key)}
-                    className="shrink-0 outline-none"
-                    title={agent.enabled ? t("settings.disableAgent") : t("settings.enableAgent")}
-                  >
-                    {togglingTools.has(agent.key) ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-muted" />
-                    ) : agent.enabled ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                    ) : (
-                      <Circle className="w-3.5 h-3.5 text-muted" />
-                    )}
-                  </button>
-                ) : (
-                  <Circle className="w-3.5 h-3.5 text-faint shrink-0" />
-                )}
-                <div className="min-w-0">
-                  <h3 className={cn("text-[13px] font-medium truncate", agent.installed && agent.enabled ? "text-secondary" : "text-muted")}>
+                <div className="flex items-center gap-2">
+                  {agent.installed ? (
+                    <button
+                      onClick={() => handleToggleTool(agent.key, !agent.enabled)}
+                      disabled={togglingTools.has(agent.key)}
+                      className="shrink-0 outline-none"
+                      title={agent.enabled ? t("settings.disableAgent") : t("settings.enableAgent")}
+                    >
+                      {togglingTools.has(agent.key) ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-muted" />
+                      ) : agent.enabled ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      ) : (
+                        <Circle className="w-3.5 h-3.5 text-muted" />
+                      )}
+                    </button>
+                  ) : (
+                    <Circle className="w-3.5 h-3.5 text-faint shrink-0" />
+                  )}
+                  <h3 className={cn("text-[13px] font-medium truncate flex-1", agent.installed && agent.enabled ? "text-secondary" : "text-muted")}>
                     {agent.display_name}
                   </h3>
-                  <p className="text-[13px] text-muted truncate" title={agent.skills_dir}>
-                    {agent.installed ? agent.skills_dir.replace(/\/Users\/[^/]+/, "~").replace(/\/home\/[^/]+/, "~").replace(/^[A-Za-z]:\\Users\\[^\\]+/, "~") : t("settings.notInstalled")}
-                  </p>
+                  {/* Action buttons shown on hover */}
+                  <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+                    {agent.has_path_override && !agent.is_custom && (
+                      <button
+                        onClick={() => handleResetPath(agent.key)}
+                        className="p-0.5 text-muted hover:text-amber-500 outline-none"
+                        title={t("settings.resetPath")}
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => startEditPath(agent.key, agent.skills_dir)}
+                      className="p-0.5 text-muted hover:text-accent outline-none"
+                      title={t("settings.editPath")}
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    {agent.is_custom && (
+                      <button
+                        onClick={() => handleRemoveCustomAgent(agent.key, agent.display_name)}
+                        className="p-0.5 text-muted hover:text-red-500 outline-none"
+                        title={t("settings.removeCustomAgent")}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Inline path editing */}
+                {editingPathKey === agent.key ? (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <input
+                      type="text"
+                      value={editingPathValue}
+                      onChange={(e) => setEditingPathValue(e.target.value)}
+                      className="h-6 flex-1 rounded border border-border-subtle bg-background px-1.5 text-[12px] font-mono text-secondary outline-none focus:border-accent min-w-0"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSavePath();
+                        if (e.key === "Escape") setEditingPathKey(null);
+                      }}
+                    />
+                    <button
+                      onClick={() => handleBrowsePath(setEditingPathValue)}
+                      className="p-0.5 text-muted hover:text-accent outline-none shrink-0"
+                      title={t("settings.selectFolder")}
+                    >
+                      <FolderOpen className="w-3 h-3" />
+                    </button>
+                    <button onClick={handleSavePath} className="p-0.5 text-emerald-500 hover:text-emerald-400 outline-none shrink-0">
+                      <Check className="w-3 h-3" />
+                    </button>
+                    <button onClick={() => setEditingPathKey(null)} className="p-0.5 text-muted hover:text-secondary outline-none shrink-0">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-[12px] text-muted truncate" title={agent.skills_dir}>
+                    {agent.is_custom && (
+                      <span className="text-[10px] text-amber-500 font-medium mr-1">{t("settings.customAgent")}</span>
+                    )}
+                    {agent.has_path_override && !agent.is_custom && (
+                      <span className="text-[10px] text-amber-500 font-medium mr-1">{t("settings.pathOverridden")}</span>
+                    )}
+                    {agent.installed
+                      ? agent.skills_dir.replace(/\/Users\/[^/]+/, "~").replace(/\/home\/[^/]+/, "~").replace(/^[A-Za-z]:\\Users\\[^\\]+/, "~")
+                      : t("settings.notInstalled")}
+                  </p>
+                )}
               </div>
             ))}
           </div>

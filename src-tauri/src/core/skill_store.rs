@@ -528,6 +528,55 @@ impl SkillStore {
         Ok(())
     }
 
+    pub fn remap_tool_key_references(&self, old_key: &str, new_key: &str) -> Result<()> {
+        if old_key == new_key {
+            return Ok(());
+        }
+        let conn = self.conn.lock().unwrap();
+
+        // scenario_skill_tools has a composite PK (scenario_id, skill_id, tool). If both old/new
+        // rows exist for the same skill in the same scenario, keep the new-key row.
+        conn.execute(
+            "DELETE FROM scenario_skill_tools AS dst
+             WHERE dst.tool = ?2
+               AND EXISTS (
+                 SELECT 1
+                 FROM scenario_skill_tools AS src
+                 WHERE src.tool = ?1
+                   AND src.scenario_id = dst.scenario_id
+                   AND src.skill_id = dst.skill_id
+               )",
+            params![old_key, new_key],
+        )?;
+        conn.execute(
+            "UPDATE scenario_skill_tools SET tool = ?2 WHERE tool = ?1",
+            params![old_key, new_key],
+        )?;
+
+        // skill_targets has UNIQUE(skill_id, tool). Same strategy: keep existing new-key rows.
+        conn.execute(
+            "DELETE FROM skill_targets AS dst
+             WHERE dst.tool = ?2
+               AND EXISTS (
+                 SELECT 1
+                 FROM skill_targets AS src
+                 WHERE src.tool = ?1
+                   AND src.skill_id = dst.skill_id
+               )",
+            params![old_key, new_key],
+        )?;
+        conn.execute(
+            "UPDATE skill_targets SET tool = ?2 WHERE tool = ?1",
+            params![old_key, new_key],
+        )?;
+
+        conn.execute(
+            "UPDATE discovered_skills SET tool = ?2 WHERE tool = ?1",
+            params![old_key, new_key],
+        )?;
+        Ok(())
+    }
+
     // ── Scenarios ──
 
     pub fn insert_scenario(&self, scenario: &ScenarioRecord) -> Result<()> {
@@ -810,10 +859,7 @@ impl SkillStore {
 
     pub fn clear_active_scenario(&self) -> Result<()> {
         let conn = self.conn.lock().unwrap();
-        conn.execute(
-            "DELETE FROM active_scenario WHERE key = 'current'",
-            [],
-        )?;
+        conn.execute("DELETE FROM active_scenario WHERE key = 'current'", [])?;
         Ok(())
     }
 

@@ -345,6 +345,7 @@ pub fn run() {
     let store = Arc::new(
         core::skill_store::SkillStore::new(&db_path).expect("Failed to initialize database"),
     );
+    commands::tools::migrate_legacy_tool_keys(&store).expect("Failed to migrate legacy tool keys");
     let store_for_setup = store.clone();
     initialize_startup_scenario(&store).expect("Failed to initialize startup scenario");
 
@@ -394,6 +395,10 @@ pub fn run() {
             commands::tools::get_tool_status,
             commands::tools::set_tool_enabled,
             commands::tools::set_all_tools_enabled,
+            commands::tools::set_custom_tool_path,
+            commands::tools::reset_custom_tool_path,
+            commands::tools::add_custom_tool,
+            commands::tools::remove_custom_tool,
             // Skills
             commands::skills::get_managed_skills,
             commands::skills::get_skills_for_scenario,

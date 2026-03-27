@@ -32,7 +32,7 @@ fn sync_skill_to_tool_internal(
     skill_id: &str,
     tool: &str,
 ) -> Result<(), AppError> {
-    let adapter = tool_adapters::find_adapter(tool)
+    let adapter = tool_adapters::find_adapter_with_store(store, tool)
         .ok_or_else(|| AppError::not_found(format!("Unknown tool: {}", tool)))?;
 
     if !adapter.is_installed() {
@@ -169,7 +169,7 @@ pub async fn get_skill_tool_toggles(
         }
 
         let disabled = disabled_tools(&store);
-        let all_adapters = tool_adapters::default_tool_adapters();
+        let all_adapters = tool_adapters::all_tool_adapters(&store);
         let default_enabled_keys: Vec<String> = all_adapters
             .iter()
             .filter(|adapter| adapter.is_installed() && !disabled.contains(&adapter.key))
@@ -227,7 +227,7 @@ pub async fn set_skill_tool_toggle(
             return Err(AppError::not_found("Skill is not enabled in this scenario"));
         }
 
-        let adapter = tool_adapters::find_adapter(&tool)
+        let adapter = tool_adapters::find_adapter_with_store(&store, &tool)
             .ok_or_else(|| AppError::not_found(format!("Unknown tool: {}", tool)))?;
         let disabled = disabled_tools(&store);
         let globally_enabled = !disabled.contains(&tool);

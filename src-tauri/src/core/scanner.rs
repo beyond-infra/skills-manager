@@ -37,12 +37,19 @@ fn is_symlink_to_central(path: &Path) -> bool {
     false
 }
 
+#[allow(dead_code)]
 pub fn scan_local_skills(managed_paths: &[String]) -> Result<ScanPlan> {
-    let adapters = tool_adapters::default_tool_adapters();
+    scan_local_skills_with_adapters(managed_paths, &tool_adapters::default_tool_adapters())
+}
+
+pub fn scan_local_skills_with_adapters(
+    managed_paths: &[String],
+    adapters: &[tool_adapters::ToolAdapter],
+) -> Result<ScanPlan> {
     let mut discovered = Vec::new();
     let mut tools_scanned = 0;
 
-    for adapter in &adapters {
+    for adapter in adapters {
         if !adapter.is_installed() {
             continue;
         }
@@ -111,13 +118,15 @@ pub fn group_discovered(records: &[DiscoveredSkillRecord]) -> Vec<DiscoveredGrou
 
     for rec in records {
         let name = rec.name_guess.clone().unwrap_or_else(|| "unknown".into());
-        let entry = groups.entry(name.clone()).or_insert_with(|| DiscoveredGroup {
-            name,
-            fingerprint: rec.fingerprint.clone(),
-            locations: Vec::new(),
-            imported: false,
-            found_at: rec.found_at,
-        });
+        let entry = groups
+            .entry(name.clone())
+            .or_insert_with(|| DiscoveredGroup {
+                name,
+                fingerprint: rec.fingerprint.clone(),
+                locations: Vec::new(),
+                imported: false,
+                found_at: rec.found_at,
+            });
 
         if rec.imported_skill_id.is_some() {
             entry.imported = true;

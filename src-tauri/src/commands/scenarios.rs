@@ -301,11 +301,16 @@ pub async fn add_skill_to_scenario(
                                     last_error: None,
                                 };
                                 if let Err(e) = store.insert_target(&target_record) {
-                                    log::warn!("Failed to insert sync target for skill {skill_id}: {e}");
+                                    log::warn!(
+                                        "Failed to insert sync target for skill {skill_id}: {e}"
+                                    );
                                 }
                             }
                             Err(e) => {
-                                log::warn!("Failed to sync skill {skill_id} to {}: {e}", target.display());
+                                log::warn!(
+                                    "Failed to sync skill {skill_id} to {}: {e}",
+                                    target.display()
+                                );
                             }
                         }
                     }
@@ -345,7 +350,10 @@ pub async fn remove_skill_from_scenario(
                         log::warn!("Failed to remove sync target {}: {e}", path.display());
                     }
                     if let Err(e) = store.delete_target(&skill_id, &target.tool) {
-                        log::warn!("Failed to delete target record for skill {skill_id}, tool {}: {e}", target.tool);
+                        log::warn!(
+                            "Failed to delete target record for skill {skill_id}, tool {}: {e}",
+                            target.tool
+                        );
                     }
                 }
             }
@@ -439,7 +447,11 @@ pub(crate) fn sync_scenario_skills(store: &SkillStore, scenario_id: &str) -> Res
                     }
                 }
                 Err(e) => {
-                    log::warn!("Failed to sync skill {} to {}: {e}", skill.id, target.display());
+                    log::warn!(
+                        "Failed to sync skill {} to {}: {e}",
+                        skill.id,
+                        target.display()
+                    );
                 }
             }
         }
@@ -464,7 +476,10 @@ pub(crate) fn unsync_scenario_skills(
                 log::warn!("Failed to remove sync target {}: {e}", path.display());
             }
             if let Err(e) = store.delete_target(skill_id, &target.tool) {
-                log::warn!("Failed to delete target record for skill {skill_id}, tool {}: {e}", target.tool);
+                log::warn!(
+                    "Failed to delete target record for skill {skill_id}, tool {}: {e}",
+                    target.tool
+                );
             }
         }
     }

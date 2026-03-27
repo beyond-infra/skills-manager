@@ -3,7 +3,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::State;
 
-use crate::core::{central_repo, error::AppError, installer, scanner, skill_store::SkillStore};
+use crate::core::{
+    central_repo, error::AppError, installer, scanner, skill_store::SkillStore, tool_adapters,
+};
 
 #[derive(Debug, Serialize)]
 pub struct ScanResultDto {
@@ -23,7 +25,9 @@ pub async fn scan_local_skills(
             all_targets.iter().map(|t| t.target_path.clone()).collect();
         let managed_skills = store.get_all_skills().map_err(AppError::db)?;
 
-        let mut plan = scanner::scan_local_skills(&managed_paths).map_err(AppError::io)?;
+        let adapters = tool_adapters::all_tool_adapters(&store);
+        let mut plan = scanner::scan_local_skills_with_adapters(&managed_paths, &adapters)
+            .map_err(AppError::io)?;
 
         for rec in &mut plan.discovered {
             if let Some(name) = rec.name_guess.as_deref() {

@@ -36,11 +36,7 @@ pub fn search(
 ) -> Result<Vec<SkillsShSkill>> {
     let client = build_http_client(proxy_url, 15);
 
-    let mut url = format!(
-        "{}?q={}",
-        mode.endpoint(),
-        urlencoding::encode(query),
-    );
+    let mut url = format!("{}?q={}", mode.endpoint(), urlencoding::encode(query),);
     if let Some(p) = page {
         url.push_str(&format!("&page={}", p));
     }
@@ -72,18 +68,25 @@ pub fn search(
     }
 
     // Parse skills from response — try "skills" array first, then "results"
-    let raw_skills: Vec<SkillsMpSkill> = if let Some(arr) = resp.get("skills").and_then(|v| v.as_array()) {
-        serde_json::from_value(serde_json::Value::Array(arr.clone()))
-            .unwrap_or_else(|e| { log::warn!("SkillsMP: failed to parse skills array: {e}"); Vec::new() })
-    } else if let Some(arr) = resp.get("results").and_then(|v| v.as_array()) {
-        serde_json::from_value(serde_json::Value::Array(arr.clone()))
-            .unwrap_or_else(|e| { log::warn!("SkillsMP: failed to parse results array: {e}"); Vec::new() })
-    } else if let Some(arr) = resp.as_array() {
-        serde_json::from_value(serde_json::Value::Array(arr.clone()))
-            .unwrap_or_else(|e| { log::warn!("SkillsMP: failed to parse root array: {e}"); Vec::new() })
-    } else {
-        Vec::new()
-    };
+    let raw_skills: Vec<SkillsMpSkill> =
+        if let Some(arr) = resp.get("skills").and_then(|v| v.as_array()) {
+            serde_json::from_value(serde_json::Value::Array(arr.clone())).unwrap_or_else(|e| {
+                log::warn!("SkillsMP: failed to parse skills array: {e}");
+                Vec::new()
+            })
+        } else if let Some(arr) = resp.get("results").and_then(|v| v.as_array()) {
+            serde_json::from_value(serde_json::Value::Array(arr.clone())).unwrap_or_else(|e| {
+                log::warn!("SkillsMP: failed to parse results array: {e}");
+                Vec::new()
+            })
+        } else if let Some(arr) = resp.as_array() {
+            serde_json::from_value(serde_json::Value::Array(arr.clone())).unwrap_or_else(|e| {
+                log::warn!("SkillsMP: failed to parse root array: {e}");
+                Vec::new()
+            })
+        } else {
+            Vec::new()
+        };
 
     Ok(raw_skills
         .into_iter()

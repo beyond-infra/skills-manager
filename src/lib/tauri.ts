@@ -8,6 +8,8 @@ export interface ToolInfo {
   installed: boolean;
   skills_dir: string;
   enabled: boolean;
+  is_custom: boolean;
+  has_path_override: boolean;
 }
 
 export interface ManagedSkill {
@@ -126,6 +128,18 @@ export const setToolEnabled = (key: string, enabled: boolean) =>
 
 export const setAllToolsEnabled = (enabled: boolean) =>
   invoke<void>("set_all_tools_enabled", { enabled });
+
+export const setCustomToolPath = (key: string, path: string) =>
+  invoke<void>("set_custom_tool_path", { key, path });
+
+export const resetCustomToolPath = (key: string) =>
+  invoke<void>("reset_custom_tool_path", { key });
+
+export const addCustomTool = (key: string, displayName: string, skillsDir: string) =>
+  invoke<void>("add_custom_tool", { key, displayName, skillsDir });
+
+export const removeCustomTool = (key: string) =>
+  invoke<void>("remove_custom_tool", { key });
 
 // ── Skills ──
 

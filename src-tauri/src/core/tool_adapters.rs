@@ -1,4 +1,5 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize)]
@@ -11,6 +12,20 @@ pub struct ToolAdapter {
     /// These are only used for discovery, not for deployment.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub additional_scan_dirs: Vec<String>,
+    /// When set, overrides the computed skills_dir with this absolute path.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub override_skills_dir: Option<String>,
+    /// Whether this is a user-defined custom agent (not built-in).
+    #[serde(default)]
+    pub is_custom: bool,
+}
+
+/// Serializable custom tool definition stored in settings.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CustomToolDef {
+    pub key: String,
+    pub display_name: String,
+    pub skills_dir: String,
 }
 
 impl ToolAdapter {
@@ -42,6 +57,9 @@ impl ToolAdapter {
     }
 
     pub fn skills_dir(&self) -> PathBuf {
+        if let Some(ref abs) = self.override_skills_dir {
+            return PathBuf::from(abs);
+        }
         let candidates = Self::candidate_paths(&self.relative_skills_dir);
         Self::select_existing_or_default(&candidates)
     }
@@ -61,9 +79,18 @@ impl ToolAdapter {
     }
 
     pub fn is_installed(&self) -> bool {
+        // Custom tools with an override path are always considered installed.
+        if self.is_custom || self.override_skills_dir.is_some() {
+            return true;
+        }
         Self::candidate_paths(&self.relative_detect_dir)
             .iter()
             .any(|path| path.exists())
+    }
+
+    /// Whether this adapter's skills_dir has been overridden from the default.
+    pub fn has_path_override(&self) -> bool {
+        self.override_skills_dir.is_some()
     }
 }
 
@@ -75,6 +102,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".cursor/skills".into(),
             relative_detect_dir: ".cursor".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "claude_code".into(),
@@ -85,6 +114,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
                 ".claude/plugins/cache".into(),
                 ".claude/plugins/marketplaces".into(),
             ],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "codex".into(),
@@ -92,6 +123,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".codex/skills".into(),
             relative_detect_dir: ".codex".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "opencode".into(),
@@ -99,6 +132,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".config/opencode/skills".into(),
             relative_detect_dir: ".config/opencode".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "antigravity".into(),
@@ -106,6 +141,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".gemini/antigravity/global_skills".into(),
             relative_detect_dir: ".gemini/antigravity".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "amp".into(),
@@ -113,6 +150,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".config/agents/skills".into(),
             relative_detect_dir: ".config/agents".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "kilo_code".into(),
@@ -120,6 +159,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".kilocode/skills".into(),
             relative_detect_dir: ".kilocode".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "roo_code".into(),
@@ -127,6 +168,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".roo/skills".into(),
             relative_detect_dir: ".roo".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "goose".into(),
@@ -134,6 +177,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".config/goose/skills".into(),
             relative_detect_dir: ".config/goose".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "gemini_cli".into(),
@@ -141,6 +186,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".gemini/skills".into(),
             relative_detect_dir: ".gemini".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "github_copilot".into(),
@@ -148,13 +195,17 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".copilot/skills".into(),
             relative_detect_dir: ".copilot".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
-            key: "clawdbot".into(),
-            display_name: "Clawdbot".into(),
-            relative_skills_dir: ".clawdbot/skills".into(),
-            relative_detect_dir: ".clawdbot".into(),
+            key: "openclaw".into(),
+            display_name: "OpenClaw".into(),
+            relative_skills_dir: ".openclaw/skills".into(),
+            relative_detect_dir: ".openclaw".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "droid".into(),
@@ -162,6 +213,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".factory/skills".into(),
             relative_detect_dir: ".factory".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "windsurf".into(),
@@ -169,6 +222,8 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".codeium/windsurf/skills".into(),
             relative_detect_dir: ".codeium/windsurf".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
         ToolAdapter {
             key: "trae".into(),
@@ -176,12 +231,73 @@ pub fn default_tool_adapters() -> Vec<ToolAdapter> {
             relative_skills_dir: ".trae/skills".into(),
             relative_detect_dir: ".trae".into(),
             additional_scan_dirs: vec![],
+            override_skills_dir: None,
+            is_custom: false,
         },
     ]
 }
 
+/// Read custom tool path overrides from store.
+fn custom_tool_paths(store: &crate::core::skill_store::SkillStore) -> HashMap<String, String> {
+    store
+        .get_setting("custom_tool_paths")
+        .ok()
+        .flatten()
+        .and_then(|v| serde_json::from_str(&v).ok())
+        .unwrap_or_default()
+}
+
+/// Read user-defined custom tools from store.
+fn custom_tools(store: &crate::core::skill_store::SkillStore) -> Vec<CustomToolDef> {
+    store
+        .get_setting("custom_tools")
+        .ok()
+        .flatten()
+        .and_then(|v| serde_json::from_str(&v).ok())
+        .unwrap_or_default()
+}
+
+/// Returns all tool adapters: built-in (with path overrides applied) + custom tools.
+pub fn all_tool_adapters(store: &crate::core::skill_store::SkillStore) -> Vec<ToolAdapter> {
+    let overrides = custom_tool_paths(store);
+    let customs = custom_tools(store);
+
+    let mut adapters: Vec<ToolAdapter> = default_tool_adapters()
+        .into_iter()
+        .map(|mut a| {
+            if let Some(path) = overrides.get(&a.key) {
+                a.override_skills_dir = Some(path.clone());
+            }
+            a
+        })
+        .collect();
+
+    for ct in customs {
+        adapters.push(ToolAdapter {
+            key: ct.key,
+            display_name: ct.display_name,
+            relative_skills_dir: String::new(),
+            relative_detect_dir: String::new(),
+            additional_scan_dirs: vec![],
+            override_skills_dir: Some(ct.skills_dir),
+            is_custom: true,
+        });
+    }
+
+    adapters
+}
+
+#[allow(dead_code)]
 pub fn find_adapter(key: &str) -> Option<ToolAdapter> {
     default_tool_adapters().into_iter().find(|a| a.key == key)
+}
+
+/// Find an adapter by key, considering custom tools and path overrides.
+pub fn find_adapter_with_store(
+    store: &crate::core::skill_store::SkillStore,
+    key: &str,
+) -> Option<ToolAdapter> {
+    all_tool_adapters(store).into_iter().find(|a| a.key == key)
 }
 
 /// Returns adapters that are installed and not in the disabled list.
@@ -194,7 +310,7 @@ pub fn enabled_installed_adapters(
         .flatten()
         .and_then(|v| serde_json::from_str(&v).ok())
         .unwrap_or_default();
-    default_tool_adapters()
+    all_tool_adapters(store)
         .into_iter()
         .filter(|a| a.is_installed() && !disabled.contains(&a.key))
         .collect()
