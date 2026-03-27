@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-03-27
+
+### Added
+- Custom agent support: add, configure, and remove user-defined agents with custom skills directories
+- Path override for built-in agents: customize skills directory for any supported agent
+- Inline path editing with native folder picker in Settings
+- Legacy tool key migration (clawdbot → openclaw) with automatic data migration
+
+### Fixed
+- Fixed tool key remap logic that could incorrectly drop existing records during migration
 ## [1.10.0] - 2026-03-25
 
 ### Added
