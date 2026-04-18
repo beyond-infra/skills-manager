@@ -451,6 +451,7 @@ export function Settings() {
 
   const fieldClass =
     "h-8 rounded-[4px] border border-border-subtle bg-background px-2.5 text-[13px] text-secondary outline-none transition-colors focus:border-border";
+  const selectClass = `${fieldClass} min-w-[180px] appearance-none pr-8`;
   const actionButtonClass =
     "inline-flex h-8 items-center gap-1.5 rounded-[4px] border px-2.5 text-[13px] font-medium transition-colors outline-none disabled:opacity-60";
   const segmentedButtonClass =
@@ -1044,16 +1045,19 @@ export function Settings() {
                 <h3 className="text-[13px] text-secondary font-medium mb-0.5">{t("settings.defaultScenario")}</h3>
                 <p className="text-[13px] text-muted">{t("settings.defaultScenarioDesc")}</p>
               </div>
-              <select
-                value={defaultScenario}
-                onChange={(e) => handleDefaultScenarioChange(e.target.value)}
-                className={fieldClass}
-              >
-                <option value="">—</option>
-                {scenarios.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
+              <div className="relative shrink-0">
+                <select
+                  value={defaultScenario}
+                  onChange={(e) => handleDefaultScenarioChange(e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="">—</option>
+                  {scenarios.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+              </div>
             </div>
 
             {/* Language */}
@@ -1063,15 +1067,18 @@ export function Settings() {
               </div>
               <div className="flex max-w-full flex-wrap items-center gap-2">
                 <Globe className="w-3.5 h-3.5 text-muted" />
-                <select
-                  value={i18n.language}
-                  onChange={(e) => handleLanguageChange(e.target.value)}
-                  className={fieldClass}
-                >
-                  <option value="zh">简体中文 (zh-CN)</option>
-                  <option value="zh-TW">繁體中文 (zh-TW)</option>
-                  <option value="en">English (en-US)</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={i18n.language}
+                    onChange={(e) => handleLanguageChange(e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="zh">简体中文 (zh-CN)</option>
+                    <option value="zh-TW">繁體中文 (zh-TW)</option>
+                    <option value="en">English (en-US)</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+                </div>
               </div>
             </div>
 
