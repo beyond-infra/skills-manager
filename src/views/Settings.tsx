@@ -668,13 +668,6 @@ export function Settings() {
               <h2 className="app-section-title">
                 {t("settings.supportedAgents")} ({installedTools.length}/{tools.length})
               </h2>
-              <p className="mt-1 text-[13px] text-muted">
-                {t("settings.agentsSummary", {
-                  detected: installedTools.length,
-                  enabled: enabledTools.length,
-                  custom: customTools.length,
-                })}
-              </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <button
