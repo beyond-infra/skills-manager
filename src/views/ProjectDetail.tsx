@@ -326,10 +326,6 @@ export function ProjectDetail() {
     }
     return Array.from(tags).sort((a, b) => a.localeCompare(b));
   }, [groupedSkills]);
-  const defaultAgentKeys = useMemo(
-    () => [...selectedExportAgents].sort(),
-    [selectedExportAgents]
-  );
   const selectedSkills = useMemo(
     () => groupedSkills.filter((skill) => selectedIds.has(getSkillKey(skill))),
     [getSkillKey, groupedSkills, selectedIds]
