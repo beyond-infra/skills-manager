@@ -19,10 +19,17 @@ pub async fn git_backup_status(
 
 #[tauri::command]
 pub async fn git_backup_init(store: State<'_, Arc<SkillStore>>) -> Result<(), AppError> {
-    let _ = store;
+    let store = store.inner().clone();
     let skills_dir = central_repo::skills_dir();
-    tokio::task::spawn_blocking(move || git_backup::init_repo(&skills_dir).map_err(AppError::git))
-        .await?
+    tokio::task::spawn_blocking(move || {
+        git_backup::with_repo_lock(&skills_dir, "git init", || {
+            git_backup::init_repo_unlocked(&skills_dir)?;
+            sync_metadata::write_all_from_db_unlocked(&store)?;
+            git_backup::commit_all_unlocked(&skills_dir, "sync: add skills manager metadata")
+        })
+        .map_err(AppError::git)
+    })
+    .await?
 }
 
 #[tauri::command]
@@ -144,7 +151,7 @@ pub async fn git_backup_restore_version(
 
 fn reconcile_skills_index_unlocked(store: &SkillStore) -> anyhow::Result<()> {
     sync_metadata::cleanup_temporary_files()?;
-    if sync_metadata::metadata_exists() {
+    if sync_metadata::has_complete_skill_snapshot() {
         sync_metadata::reindex_from_metadata_unlocked(store)?;
         return Ok(());
     }

@@ -125,6 +125,7 @@ pub fn get_status(skills_dir: &Path) -> Result<GitBackupStatus> {
 }
 
 /// Initialize a new git repository in the skills directory.
+#[allow(dead_code)]
 pub fn init_repo(skills_dir: &Path) -> Result<()> {
     let _lock = RepoLock::acquire(skills_dir, "git init")?;
     init_repo_unlocked(skills_dir)
