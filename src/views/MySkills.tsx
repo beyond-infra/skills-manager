@@ -934,50 +934,39 @@ export function MySkills() {
     return label;
   };
 
+  // Compact inline status: only render when there's actionable info the button alone
+  // does not convey. The button already tells the user "Synced" / "Set Up Backup" /
+  // "Fix Sync Setup", so we suppress redundant labels for those modes.
   const renderGitInlineStatus = (mode: GitToolbarMode) => {
-    if (mode === "loading") return null;
-    if (mode === "uninitialized") {
-      return (
-        <span className="text-[12px] text-muted">{t("mySkills.gitInlineNotConfigured")}</span>
-      );
+    if (!gitStatus || mode === "loading" || mode === "up_to_date") return null;
+    if (mode === "uninitialized" || mode === "needs_remote" || mode === "needs_fix") {
+      return null;
     }
-    if (mode === "needs_remote") {
-      return (
-        <span className="text-[12px] text-red-500">{t("mySkills.gitRepoNeedRemote")}</span>
-      );
-    }
-    if (mode === "needs_fix") {
-      return (
-        <span className="text-[12px] font-medium text-red-500">{t("mySkills.gitInlineNeedFix")}</span>
-      );
-    }
-    if (!gitStatus) return null;
     const parts: string[] = [];
     if (gitStatus.has_changes || gitStatus.ahead > 0) {
       const localCount = Math.max(gitStatus.ahead, gitStatus.has_changes ? 1 : 0);
-      parts.push(t("mySkills.gitInlineLocalChanges", { count: localCount }));
+      parts.push(`↑${localCount}`);
     }
     if (gitStatus.behind > 0) {
-      parts.push(t("mySkills.gitInlineRemoteUpdates", { count: gitStatus.behind }));
+      parts.push(`↓${gitStatus.behind}`);
     }
-    // First-push case: nothing pending against upstream because there IS no upstream yet.
     if (parts.length === 0 && gitStatus.upstream_health === "no_upstream") {
-      parts.push(t("mySkills.gitInlineLocalOnly"));
+      parts.push("↑");
     }
-    if (parts.length === 0) {
-      const when = formatSnapshotWhen(gitStatus.current_snapshot_tag);
-      return (
-        <span className="text-[12px] text-muted">
-          {t("mySkills.gitInlineUpToDate")}
-          {when ? <span className="ml-2 text-faint">· {t("mySkills.gitInlineLastSnapshot", { when })}</span> : null}
-        </span>
-      );
-    }
-    const when = formatSnapshotWhen(gitStatus.current_snapshot_tag);
+    if (parts.length === 0) return null;
     return (
-      <span className="text-[12px] text-amber-600 dark:text-amber-400">
-        {parts.join(" · ")}
-        {when ? <span className="ml-2 text-faint">· {t("mySkills.gitInlineLastSnapshot", { when })}</span> : null}
+      <span
+        className="text-[11px] font-medium text-amber-600 dark:text-amber-400 tabular-nums"
+        title={[
+          gitStatus.has_changes || gitStatus.ahead > 0
+            ? t("mySkills.gitInlineLocalChanges", { count: Math.max(gitStatus.ahead, gitStatus.has_changes ? 1 : 0) })
+            : null,
+          gitStatus.behind > 0 ? t("mySkills.gitInlineRemoteUpdates", { count: gitStatus.behind }) : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      >
+        {parts.join(" ")}
       </span>
     );
   };
@@ -1113,10 +1102,11 @@ export function MySkills() {
           {(() => {
             const mode = getGitToolbarMode();
             const inlineStatus = renderGitInlineStatus(mode);
+            const snapshotWhen = formatSnapshotWhen(gitStatus?.current_snapshot_tag ?? null);
             return (
               <>
                 {inlineStatus ? (
-                  <span className="mr-1 inline-flex items-center px-2 py-1 leading-tight">
+                  <span className="mr-0.5 inline-flex items-center px-1 leading-tight">
                     {inlineStatus}
                   </span>
                 ) : null}
@@ -1175,6 +1165,7 @@ export function MySkills() {
                   <button
                     onClick={() => setGitVersionsOpen((v) => !v)}
                     disabled={!!gitLoading}
+                    title={snapshotWhen ? t("mySkills.gitInlineLastSnapshot", { when: snapshotWhen }) : undefined}
                     className={cn(
                       "ml-1 inline-flex items-center gap-1 rounded-md px-3 py-2 text-[13px] font-medium transition-colors hover:bg-surface-hover disabled:opacity-50",
                       gitVersionsOpen ? "text-secondary" : "text-muted"
